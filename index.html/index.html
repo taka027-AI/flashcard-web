@@ -968,12 +968,17 @@
         const firestoreLogs = [];
         logsSnapshot.forEach(doc => firestoreLogs.push(doc.data()));
 
-        if (firestoreDecks.length > 0 || firestoreLogs.length > 0) {
-          decks = firestoreDecks;
-          studyLogs = firestoreLogs;
-          localStorage.setItem('flashcard_decks', JSON.stringify(decks));
-          localStorage.setItem('flashcard_study_logs', JSON.stringify(studyLogs));
-          renderDecks();
+        // クラウドにデータがある場合は、クラウドを正として上書きする
+        // (空の配列の場合でもクラウドにコレクションが存在すれば同期対象とする)
+        decks = firestoreDecks;
+        studyLogs = firestoreLogs;
+        
+        localStorage.setItem('flashcard_decks', JSON.stringify(decks));
+        localStorage.setItem('flashcard_study_logs', JSON.stringify(studyLogs));
+        
+        renderDecks();
+        if (document.getElementById('stats-screen').classList.contains('active')) {
+          renderStats();
         }
       } catch (error) {
         console.error('Firestore同期エラー:', error);
@@ -1006,8 +1011,15 @@
         }
 
         const logsRef = db.collection('users').doc(user.uid).collection('studyLogs');
+        // 学習ログも最新の状態に同期（既存のログを一度クリアして現在の状態を保存）
+        const existingLogs = await logsRef.get();
+        const logBatch = db.batch();
+        existingLogs.forEach(doc => logBatch.delete(doc.ref));
+        await logBatch.commit();
+
         for (const log of studyLogs) {
-          await logsRef.doc(log.id || Date.now().toString()).set(log);
+          const logId = log.id || `log-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+          await logsRef.doc(logId).set(log);
         }
       } catch (error) {
         console.error('Firestore保存エラー:', error);
@@ -1218,9 +1230,21 @@
       showScreen('deck-detail');
     }
 
-    function deleteDeck(deckId) {
+    async function deleteDeck(deckId) {
       if (!confirm('デッキを削除しますか？')) return;
+      
+      // ローカルから削除
       decks = decks.filter(d => d.id !== deckId);
+      
+      // クラウドからも即座に削除
+      if (user && db) {
+        try {
+          await db.collection('users').doc(user.uid).collection('decks').doc(deckId).delete();
+        } catch (error) {
+          console.error('Firestore削除エラー:', error);
+        }
+      }
+      
       saveData();
       renderDecks();
     }
@@ -1452,9 +1476,23 @@
       document.getElementById('mature-cards').textContent = matureCards;
     }
 
-    function clearStudyLogs() {
+    async function clearStudyLogs() {
       if (!confirm('統計を削除しますか？')) return;
       studyLogs = [];
+      
+      // クラウド側の統計も削除
+      if (user && db) {
+        try {
+          const logsRef = db.collection('users').doc(user.uid).collection('studyLogs');
+          const snapshot = await logsRef.get();
+          const batch = db.batch();
+          snapshot.forEach(doc => batch.delete(doc.ref));
+          await batch.commit();
+        } catch (error) {
+          console.error('Firestore統計削除エラー:', error);
+        }
+      }
+      
       saveData();
       renderStats();
     }
