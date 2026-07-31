@@ -762,12 +762,22 @@
         }
 
         // 2. データベース解析
-        const dbFile = zip.file("collection.anki2");
+        const dbFile =
+            zip.file("collection.anki21") ||
+            zip.file("collection.anki21b") ||
+            zip.file("collection.anki2");
+        if (!dbFile) throw new Error("Ankiデータベースが見つかりません");
         const dbData = await dbFile.async("uint8array");
         const ankiDb = new SQL.Database(dbData);
 
-        const decksResult = ankiDb.exec("SELECT id, name FROM decks");
-        const deckInfo = JSON.parse(decksResult[0].values[0][1]);
+        let deckInfo;
+        const colRes = ankiDb.exec("SELECT decks FROM col");
+        if (colRes.length) {
+          deckInfo = JSON.parse(colRes[0].values[0][0]);
+        } else {
+          const decksResult = ankiDb.exec("SELECT id, name FROM decks");
+          deckInfo = JSON.parse(decksResult[0].values[0][1]);
+        }
         
         tempImportedDecks = [];
         let totalCards = 0;
@@ -814,7 +824,7 @@
 
       } catch (e) {
         console.error(e);
-        alert("インポートエラーが発生しました。");
+        alert("インポートエラー:\n"+(e && e.message ? e.message : e));
         loading.classList.add('hidden');
       }
     }
