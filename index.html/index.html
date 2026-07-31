@@ -654,14 +654,15 @@
   </div>
 
   <script>
-    // Firebase 設定 (元の値を保持)
+    // Firebase 設定 (元の正しい値を復元)
     const firebaseConfig = {
-      apiKey: "AIzaSyD-fake-key",
-      authDomain: "flashcard-pro-12345.firebaseapp.com",
-      projectId: "flashcard-pro-12345",
-      storageBucket: "flashcard-pro-12345.appspot.com",
-      messagingSenderId: "123456789",
-      appId: "1:123456789:web:abcdef123456"
+      apiKey: "AIzaSyCKuTrjeAYG_thmnazHSbfJj4HzzOtIj4k",
+      authDomain: "anki-neo.firebaseapp.com",
+      projectId: "anki-neo",
+      storageBucket: "anki-neo.firebasestorage.app",
+      messagingSenderId: "997740226276",
+      appId: "1:997740226276:web:8d372df97e078967a4aef1",
+      measurementId: "G-TB23M3X5LF"
     };
 
     let app, auth, db, user = null;
@@ -669,7 +670,7 @@
       firebase.initializeApp(firebaseConfig);
       auth = firebase.auth();
       db = firebase.firestore();
-      auth.onAuthStateChanged(u => {
+      auth.onAuthStateChanged(function(u) {
         user = u;
         updateAuthButton();
         if (user) loadDataFromCloud();
@@ -686,10 +687,10 @@
     let frontImageData = null;
     let backImageData = null;
     let SQL = null;
-    let mediaMap = {}; // Anki画像Blob URLマップ
+    let mediaMap = {};
 
     // SQL.js 初期化
-    initSqlJs({ locateFile: file => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.wasm` }).then(sql => {
+    initSqlJs({ locateFile: function(file) { return `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.wasm`; } }).then(function(sql) {
       SQL = sql;
       renderDecks();
     });
@@ -700,12 +701,11 @@
       localStorage.setItem('flashcard_logs', JSON.stringify(studyLogs));
       if (user && db) {
         try {
-          const batch = db.batch();
           for (const deck of decks) {
             const deckRef = db.collection('users').doc(user.uid).collection('decks').doc(deck.id);
-            batch.set(deckRef, deck);
+            // 画像データが大きすぎる場合は警告が出る可能性がありますが、保存は試みます
+            await deckRef.set(deck);
           }
-          await batch.commit();
         } catch (e) { console.error("クラウド保存エラー:", e); }
       }
     }
@@ -715,7 +715,7 @@
       try {
         const snapshot = await db.collection('users').doc(user.uid).collection('decks').get();
         const cloudDecks = [];
-        snapshot.forEach(doc => cloudDecks.push(doc.data()));
+        snapshot.forEach(function(doc) { cloudDecks.push(doc.data()); });
         if (cloudDecks.length > 0) {
           decks = cloudDecks;
           saveData();
@@ -724,7 +724,7 @@
       } catch (e) { console.error("クラウド読み込みエラー:", e); }
     }
 
-    // Ankiインポート処理 (完全版)
+    // Ankiインポート処理
     let tempImportedDecks = [];
     async function handleFileSelect(event) {
       const file = event.target.files[0];
@@ -747,18 +747,21 @@
       try {
         const zip = await JSZip.loadAsync(file);
         
-        // 1. mediaマッピングの解析
+        // 1. mediaマッピング
         const mediaFile = zip.file("media");
         if (mediaFile) {
           const mediaJson = await mediaFile.async("text");
           const rawMap = JSON.parse(mediaJson);
-          for (const [key, name] of Object.entries(rawMap)) {
-            const blob = await zip.file(key).async("blob");
-            mediaMap[name] = URL.createObjectURL(blob);
+          for (const key in rawMap) {
+            if (rawMap.hasOwnProperty(key)) {
+              const name = rawMap[key];
+              const blob = await zip.file(key).async("blob");
+              mediaMap[name] = URL.createObjectURL(blob);
+            }
           }
         }
 
-        // 2. データベースの解析
+        // 2. データベース解析
         const dbFile = zip.file("collection.anki2");
         const dbData = await dbFile.async("uint8array");
         const ankiDb = new SQL.Database(dbData);
@@ -770,33 +773,35 @@
         let totalCards = 0;
 
         for (const did in deckInfo) {
-          const d = deckInfo[did];
-          if (d.name === "Default") continue;
+          if (deckInfo.hasOwnProperty(did)) {
+            const d = deckInfo[did];
+            if (d.name === "Default") continue;
 
-          const cardsRes = ankiDb.exec(`SELECT flds, ivl, factor, due FROM notes JOIN cards ON notes.id = cards.nid WHERE cards.did = ${did}`);
-          if (!cardsRes.length) continue;
+            const cardsRes = ankiDb.exec(`SELECT flds, ivl, factor, due FROM notes JOIN cards ON notes.id = cards.nid WHERE cards.did = ${did}`);
+            if (!cardsRes.length) continue;
 
-          const cards = cardsRes[0].values.map(v => {
-            const fields = v[0].split('\x1f');
-            return {
-              id: Math.random().toString(36).substr(2, 9),
-              front: fields[0],
-              back: fields[1],
-              extra: fields[2] || "",
-              interval: v[1] || 0,
-              easeFactor: (v[2] || 2500) / 1000,
-              nextReviewDate: new Date(Date.now() + (v[3] || 0) * 86400000).toISOString()
-            };
-          });
+            const cards = cardsRes[0].values.map(function(v) {
+              const fields = v[0].split('\x1f');
+              return {
+                id: Math.random().toString(36).substr(2, 9),
+                front: fields[0],
+                back: fields[1],
+                extra: fields[2] || "",
+                interval: v[1] || 0,
+                easeFactor: (v[2] || 2500) / 1000,
+                nextReviewDate: new Date(Date.now() + (v[3] || 0) * 86400000).toISOString()
+              };
+            });
 
-          tempImportedDecks.push({
-            id: did,
-            name: d.name,
-            description: "Ankiからインポート",
-            cards: cards,
-            createdAt: new Date().toISOString()
-          });
-          totalCards += cards.length;
+            tempImportedDecks.push({
+              id: did,
+              name: d.name,
+              description: "Ankiからインポート",
+              cards: cards,
+              createdAt: new Date().toISOString()
+            });
+            totalCards += cards.length;
+          }
         }
 
         document.getElementById('preview-decks').textContent = tempImportedDecks.length;
@@ -815,17 +820,15 @@
     }
 
     function importDeck() {
-      decks = [...decks, ...tempImportedDecks];
+      decks = decks.concat(tempImportedDecks);
       saveData();
       alert("インポートが完了しました！");
       showScreen('home');
     }
 
-    // 学習機能の強化 (画像置換ロジック)
     function processAnkiContent(text) {
       if (!text) return "";
-      // <img src="filename.jpg"> を Blob URL に置換
-      return text.replace(/<img src="([^"]+)">/g, (match, filename) => {
+      return text.replace(/<img src="([^"]+)">/g, function(match, filename) {
         const blobUrl = mediaMap[filename];
         return blobUrl ? `<img src="${blobUrl}" class="card-image">` : match;
       });
@@ -865,7 +868,6 @@
 
     function answerCard(quality) {
       const card = currentDeck.cards[currentCardIndex];
-      // 簡単なSM-2アルゴリズムの適用 (元のロジックを保持)
       if (quality === 'again') {
         card.interval = 0;
       } else {
@@ -876,7 +878,7 @@
       studyLogs.push({
         cardId: card.id,
         deckId: currentDeck.id,
-        quality,
+        quality: quality,
         timestamp: new Date().toISOString()
       });
 
@@ -891,10 +893,9 @@
       showScreen('home');
     }
 
-    // UI 制御とヘルパー (元のコードから移植)
     function showScreen(id) {
-      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+      document.querySelectorAll('.screen').forEach(function(s) { s.classList.remove('active'); });
+      document.querySelectorAll('.nav-item').forEach(function(n) { n.classList.remove('active'); });
       document.getElementById(`${id}-screen`).classList.add('active');
       const navItems = document.querySelectorAll('.nav-item');
       if (id === 'home') navItems[0].classList.add('active');
@@ -912,21 +913,23 @@
         empty.classList.remove('hidden');
       } else {
         empty.classList.add('hidden');
-        container.innerHTML = decks.map(d => `
-          <div class="card" onclick="openDeckDetail('${d.id}')">
-            <div class="card-header">
-              <div class="card-header-content">
-                <div class="card-title">${d.name}</div>
-                <div class="card-description">${d.description || ''}</div>
+        container.innerHTML = decks.map(function(d) {
+          return `
+            <div class="card" onclick="openDeckDetail('${d.id}')">
+              <div class="card-header">
+                <div class="card-header-content">
+                  <div class="card-title">${d.name}</div>
+                  <div class="card-description">${d.description || ''}</div>
+                </div>
+                <button class="delete-button" onclick="event.stopPropagation(); deleteDeck('${d.id}')">🗑️</button>
               </div>
-              <button class="delete-button" onclick="event.stopPropagation(); deleteDeck('${d.id}')">🗑️</button>
+              <div class="card-stats">
+                <div class="stat"><div class="stat-label">カード</div><div class="stat-value">${d.cards.length}</div></div>
+                <button class="button" style="margin-left:auto;" onclick="event.stopPropagation(); startStudy('${d.id}')">学習</button>
+              </div>
             </div>
-            <div class="card-stats">
-              <div class="stat"><div class="stat-label">カード</div><div class="stat-value">${d.cards.length}</div></div>
-              <button class="button" style="margin-left:auto;" onclick="event.stopPropagation(); startStudy('${d.id}')">学習</button>
-            </div>
-          </div>
-        `).join('');
+          `;
+        }).join('');
       }
       updateHomeStats();
     }
@@ -934,12 +937,12 @@
     function updateHomeStats() {
       document.getElementById('total-decks').textContent = decks.length;
       let total = 0;
-      decks.forEach(d => total += d.cards.length);
+      decks.forEach(function(d) { total += d.cards.length; });
       document.getElementById('total-cards').textContent = total;
     }
 
     function startStudy(id) {
-      currentDeck = decks.find(d => d.id === id);
+      currentDeck = decks.find(function(d) { return d.id === id; });
       if (!currentDeck || currentDeck.cards.length === 0) return alert("カードがありません");
       currentCardIndex = 0;
       studyStartTime = new Date();
@@ -949,7 +952,7 @@
     }
 
     function openDeckDetail(id) {
-      currentDeck = decks.find(d => d.id === id);
+      currentDeck = decks.find(function(d) { return d.id === id; });
       showDeckDetail();
     }
 
@@ -958,18 +961,20 @@
       document.getElementById('detail-deck-desc').textContent = currentDeck.description;
       document.getElementById('detail-card-count').textContent = currentDeck.cards.length;
       const list = document.getElementById('detail-cards-list');
-      list.innerHTML = currentDeck.cards.map((c, i) => `
-        <div class="card">
-          <div style="font-size:0.875rem; font-weight:600;">カード ${i+1}</div>
-          <div style="font-size:0.75rem; color:var(--muted);">${c.front.substring(0, 30)}...</div>
-        </div>
-      `).join('');
+      list.innerHTML = currentDeck.cards.map(function(c, i) {
+        return `
+          <div class="card">
+            <div style="font-size:0.875rem; font-weight:600;">カード ${i+1}</div>
+            <div style="font-size:0.75rem; color:var(--muted);">${c.front.substring(0, 30)}...</div>
+          </div>
+        `;
+      }).join('');
       showScreen('deck-detail');
     }
 
     function deleteDeck(id) {
       if (!confirm("削除しますか？")) return;
-      decks = decks.filter(d => d.id !== id);
+      decks = decks.filter(function(d) { return d.id !== id; });
       saveData();
       renderDecks();
     }
@@ -998,7 +1003,7 @@
 
     function renderStats() {
       document.getElementById('total-reviews').textContent = studyLogs.length;
-      document.getElementById('today-reviews').textContent = studyLogs.filter(l => new Date(l.timestamp).toDateString() === new Date().toDateString()).length;
+      document.getElementById('today-reviews').textContent = studyLogs.filter(function(l) { return new Date(l.timestamp).toDateString() === new Date().toDateString(); }).length;
     }
 
     function clearStudyLogs() {
@@ -1009,7 +1014,7 @@
     function saveDeck() {
       const name = document.getElementById('deck-name-input').value;
       if (!name) return alert("名前を入れてください");
-      decks.push({ id: Date.now().toString(), name, description: document.getElementById('deck-desc-input').value, cards: [], createdAt: new Date().toISOString() });
+      decks.push({ id: Date.now().toString(), name: name, description: document.getElementById('deck-desc-input').value, cards: [], createdAt: new Date().toISOString() });
       saveData(); showScreen('home');
     }
 
@@ -1020,6 +1025,25 @@
       if (!f) return alert("問題を入れてください");
       currentDeck.cards.push({ id: Date.now().toString(), front: f, back: b, interval: 0, easeFactor: 2.5, nextReviewDate: new Date().toISOString() });
       saveData(); showDeckDetail();
+    }
+    
+    // 画像アップロード処理
+    async function handleImageUpload(side, event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        if (side === 'front') {
+          frontImageData = e.target.result;
+          document.getElementById('front-image-img').src = frontImageData;
+          document.getElementById('front-image-preview').classList.remove('hidden');
+        } else {
+          backImageData = e.target.result;
+          document.getElementById('back-image-img').src = backImageData;
+          document.getElementById('back-image-preview').classList.remove('hidden');
+        }
+      };
+      reader.readAsDataURL(file);
     }
   </script>
 </body>
