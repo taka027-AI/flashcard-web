@@ -667,6 +667,7 @@
     var backImageData = null;
     var SQL = null;
     var db = null;
+    var mediaLoaded = false;
 
     // IndexedDB初期化
     function initIndexedDB() {
@@ -697,6 +698,13 @@
         for (var i = 0; i < mediaData.length; i++) {
           var item = mediaData[i];
           mediaMap[item.filename] = item.data;
+        }
+        mediaLoaded = true;
+        // mediaMapがロードされた後に再レンダリング
+        renderDecks();
+        // 学習画面が表示されている場合はカードを再レンダリング
+        if (currentDeck) {
+          renderCard();
         }
       };
     }
