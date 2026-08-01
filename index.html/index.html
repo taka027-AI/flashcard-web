@@ -745,9 +745,28 @@
         });
         
         if (cloudDecks.length > 0) {
-          // ローカルに存在しないクラウドデッキのみを追加
           const localDeckIds = new Set(decks.map(d => d.id));
-          const newDecks = cloudDecks.filter(d => !localDeckIds.has(d.id));
+          const newDecks = [];
+          
+          cloudDecks.forEach(function(cloudDeck) {
+            // ローカルに存在しないデッキは追加
+            if (!localDeckIds.has(cloudDeck.id)) {
+              newDecks.push(cloudDeck);
+            } else {
+              // Macの場合、クラウドデータに画像が含まれていない場合は更新を無視
+              if (!isMobileDevice()) {
+                const hasImages = cloudDeck.cards && cloudDeck.cards.some(function(card) {
+                  return card.frontImage || card.backImage || 
+                         (card.front && card.front.includes('<img')) || 
+                         (card.back && card.back.includes('<img'));
+                });
+                if (!hasImages) {
+                  console.log("画像なしのクラウドデータを無視:", cloudDeck.id);
+                  return;
+                }
+              }
+            }
+          });
           
           if (newDecks.length > 0) {
             decks = decks.concat(newDecks);
