@@ -1,4 +1,9 @@
-<!DOCTYPE html>
+alue = '';
+    }
+  </script>
+</body>
+</html>
+about:blank#blocked<<!DOCTYPE html>
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
@@ -688,6 +693,11 @@
     let backImageData = null;
     let SQL = null;
     let mediaMap = {};
+    
+    // デバイス検出
+    function isMobileDevice() {
+      return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768;
+    }
 
     // SQL.js 初期化
     initSqlJs({ locateFile: function(file) { return `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.wasm`; } }).then(function(sql) {
@@ -703,7 +713,25 @@
         try {
           for (const deck of decks) {
             const deckRef = db.collection('users').doc(user.uid).collection('decks').doc(deck.id);
-            await deckRef.set(deck);
+            
+            // スマホの場合は画像データを除外して保存
+            if (isMobileDevice()) {
+              const deckWithoutImages = {
+                ...deck,
+                cards: deck.cards.map(card => ({
+                  ...card,
+                  frontImage: undefined,
+                  backImage: undefined,
+                  front: card.front ? card.front.replace(/<img[^>]+>/g, '') : card.front,
+                  back: card.back ? card.back.replace(/<img[^>]+>/g, '') : card.back,
+                  extra: card.extra ? card.extra.replace(/<img[^>]+>/g, '') : card.extra
+                }))
+              };
+              await deckRef.set(deckWithoutImages);
+            } else {
+              // Macの場合は画像データを含めて保存
+              await deckRef.set(deck);
+            }
           }
         } catch (e) { console.error("クラウド保存エラー:", e); }
       }
@@ -853,6 +881,10 @@
 
     function processAnkiContent(text) {
       if (!text) return "";
+      // スマホの場合は画像を表示しない
+      if (isMobileDevice()) {
+        return text.replace(/<img[^>]+>/g, '');
+      }
       return text.replace(/<img src="([^"]+)">/g, function(match, filename) {
         const base64Image = mediaMap[filename];
         return base64Image ? `<img src="${base64Image}" class="card-image">` : match;
@@ -866,7 +898,8 @@
       }
       const card = currentDeck.cards[currentCardIndex];
       let frontHtml = `<div class="study-card-front">${processAnkiContent(card.front)}</div>`;
-      if (card.frontImage) frontHtml += `<img src="${card.frontImage}" class="card-image">`;
+      // スマホの場合は画像を表示しない
+      if (!isMobileDevice() && card.frontImage) frontHtml += `<img src="${card.frontImage}" class="card-image">`;
       
       document.getElementById('card-front').innerHTML = frontHtml;
       document.getElementById('card-back').classList.add('hidden');
@@ -883,7 +916,8 @@
       const card = currentDeck.cards[currentCardIndex];
       let backHtml = `<div class="study-card-back">${processAnkiContent(card.back)}</div>`;
       if (card.extra) backHtml += `<div style="margin-top:1rem; font-size:0.9rem; color:var(--muted);">${processAnkiContent(card.extra)}</div>`;
-      if (card.backImage) backHtml += `<img src="${card.backImage}" class="card-image">`;
+      // スマホの場合は画像を表示しない
+      if (!isMobileDevice() && card.backImage) backHtml += `<img src="${card.backImage}" class="card-image">`;
       
       document.getElementById('card-back').innerHTML = backHtml;
       document.getElementById('card-back').classList.remove('hidden');
@@ -1121,9 +1155,4 @@
         }
       };
       reader.readAsText(file);
-      event.target.value = '';
-    }
-  </script>
-</body>
-</html>
-about:blank#blocked<
+      event.target.v
