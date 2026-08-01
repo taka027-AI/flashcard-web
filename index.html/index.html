@@ -6,9 +6,6 @@
   <title>FlashCard Pro - Anki互換フラッシュカードアプリ</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
   <style>
     * {
       margin: 0;
@@ -551,9 +548,6 @@
         <button class="button button-secondary" onclick="showScreen('import')">📤 Anki形式をインポート</button>
         <button class="button button-secondary" onclick="exportData()">💾 データエクスポート</button>
         <button class="button button-secondary" onclick="document.getElementById('import-json-input').click()">📥 データインポート</button>
-        <button class="button button-secondary" id="auth-button" onclick="handleAuth()">
-          <span id="auth-icon">🔐</span> <span id="auth-text">ログイン</span>
-        </button>
         <input type="file" id="import-json-input" accept=".json" onchange="importData(event)" style="display: none;">
       </div>
     </div>
@@ -645,30 +639,9 @@
       <div id="detail-cards-list"></div>
       <div class="button-group"><button class="button" onclick="showAddCard()">+ カード追加</button><button class="button button-secondary" onclick="startStudy(currentDeck.id)">📚 学習開始</button></div>
     </div>
-
-    <div id="login-screen" class="screen">
-      <div class="header"><h1>ログイン</h1><p>クラウド同期でデータを共有</p></div>
-      <div class="card"><div class="card-title">パスワード</div><input type="password" id="password-input" style="width:100%; padding:0.75rem; border:1px solid var(--border); border-radius:0.5rem; margin-bottom:1rem;"></div>
-      <div class="button-group"><button class="button" onclick="login()">🔐 ログイン</button><button class="button button-secondary" onclick="showScreen('home')">キャンセル</button></div>
-    </div>
   </div>
 
   <script>
-    // Firebase 設定
-    const firebaseConfig = {
-      apiKey: "AIzaSyCKuTrjeAYG_thmnazHSbfJj4HzzOtIj4k",
-      authDomain: "anki-neo.firebaseapp.com",
-      projectId: "anki-neo",
-      storageBucket: "anki-neo.firebasestorage.app",
-      messagingSenderId: "997740226276",
-      appId: "1:997740226276:web:8d372df97e078967a4aef1",
-      measurementId: "G-TB23M3X5LF"
-    };
-
-    let app, auth, db, user = null;
-    // Firebaseを完全に無効化（クラウド同期を停止）
-    user = null;
-
     // 状態管理
     let decks = JSON.parse(localStorage.getItem('flashcard_decks') || '[]');
     let studyLogs = JSON.parse(localStorage.getItem('flashcard_logs') || '[]');
@@ -680,11 +653,6 @@
     let backImageData = null;
     let SQL = null;
     let mediaMap = {};
-    
-    // デバイス検出
-    function isMobileDevice() {
-      return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768;
-    }
 
     // SQL.js 初期化
     initSqlJs({ locateFile: function(file) { return `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.wasm`; } }).then(function(sql) {
@@ -970,28 +938,6 @@
       decks = decks.filter(function(d) { return d.id !== id; });
       saveData();
       renderDecks();
-    }
-
-    function updateAuthButton() {
-      const icon = document.getElementById('auth-icon');
-      const text = document.getElementById('auth-text');
-      if (user) { icon.textContent = '🔓'; text.textContent = 'ログアウト'; }
-      else { icon.textContent = '🔐'; text.textContent = 'ログイン'; }
-    }
-
-    function handleAuth() {
-      if (user) { if (confirm("ログアウトしますか？")) auth.signOut(); }
-      else showScreen('login');
-    }
-
-    async function login() {
-      const pw = document.getElementById('password-input').value;
-      if (pw === 'takataka027') {
-        try {
-          await auth.signInWithEmailAndPassword("user@example.com", pw);
-          showScreen('home');
-        } catch(e) { alert("ログイン失敗"); }
-      } else { alert("パスワード違います"); }
     }
 
     function renderStats() {
