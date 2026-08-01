@@ -734,6 +734,12 @@
 
     async function loadDataFromCloud() {
       if (!user || !db) return;
+      // Macの場合はクラウド同期を無効にしてローカルデータのみを使用
+      if (!isMobileDevice()) {
+        console.log("Macモード: クラウド同期を無効化");
+        return;
+      }
+      
       try {
         const snapshot = await db.collection('users').doc(user.uid).collection('decks').get();
         const cloudDecks = [];
@@ -745,26 +751,14 @@
         });
         
         if (cloudDecks.length > 0) {
-          // Macの場合は既存のデッキを更新せず、新しいデッキのみを追加
-          if (!isMobileDevice()) {
-            const localDeckIds = new Set(decks.map(d => d.id));
-            const newDecks = cloudDecks.filter(d => !localDeckIds.has(d.id));
-            
-            if (newDecks.length > 0) {
-              decks = decks.concat(newDecks);
-              saveData();
-              renderDecks();
-            }
-          } else {
-            // スマホの場合は新しいデッキを追加
-            const localDeckIds = new Set(decks.map(d => d.id));
-            const newDecks = cloudDecks.filter(d => !localDeckIds.has(d.id));
-            
-            if (newDecks.length > 0) {
-              decks = decks.concat(newDecks);
-              saveData();
-              renderDecks();
-            }
+          // スマホの場合は新しいデッキを追加
+          const localDeckIds = new Set(decks.map(d => d.id));
+          const newDecks = cloudDecks.filter(d => !localDeckIds.has(d.id));
+          
+          if (newDecks.length > 0) {
+            decks = decks.concat(newDecks);
+            saveData();
+            renderDecks();
           }
         }
       } catch (e) { console.error("クラウド読み込みエラー:", e); }
