@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+!DOCTYPE html>
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
@@ -498,8 +498,6 @@
       background: none;
     }
 
-    .delete-button:hover { opacity: 1; }
-
     .card-header {
       display: flex;
       justify-content: space-between;
@@ -663,15 +661,15 @@
     var currentCardIndex = 0;
     var isCardFlipped = false;
     var studyStartTime = null;
-    var frontImageData = null;
-    var backImageData = null;
+    var frontImageFilename = null;
+    var backImageFilename = null;
     var SQL = null;
     var db = null;
     var mediaLoaded = false;
 
-    // IndexedDB初期化
+    // IndexedDB初期化 (Version 2 にアップグレードして keyPath を追加)
     function initIndexedDB() {
-      var request = indexedDB.open('FlashCardDB_' + storagePrefix, 1);
+      var request = indexedDB.open('FlashCardDB_' + storagePrefix, 2);
       request.onerror = function(event) {
         console.error('IndexedDB error:', event);
       };
@@ -681,9 +679,11 @@
       };
       request.onupgradeneeded = function(event) {
         var database = event.target.result;
-        if (!database.objectStoreNames.contains('media')) {
-          database.createObjectStore('media');
+        // バージョンアップ時に既存の（不完全な）ストアを削除して再作成
+        if (database.objectStoreNames.contains('media')) {
+          database.deleteObjectStore('media');
         }
+        database.createObjectStore('media', { keyPath: 'filename' });
       };
     }
 
@@ -700,26 +700,33 @@
           mediaMap[item.filename] = item.data;
         }
         mediaLoaded = true;
-        // mediaMapがロードされた後に再レンダリング
+        console.log('Media loaded from DB:', Object.keys(mediaMap).length, 'items');
         renderDecks();
-        // 学習画面が表示されている場合はカードを再レンダリング
         if (currentDeck) {
           renderCard();
         }
       };
     }
 
-    // IndexedDBにメディアデータを保存
+    // IndexedDBにメディアデータを保存 (put を使用して重複を防ぐ)
     function saveMediaToDB() {
       if (!db) return;
       var transaction = db.transaction(['media'], 'readwrite');
       var objectStore = transaction.objectStore('media');
-      objectStore.clear();
+      
+      // mediaMap の全アイテムを保存
       for (var filename in mediaMap) {
         if (mediaMap.hasOwnProperty(filename)) {
-          objectStore.add({ filename: filename, data: mediaMap[filename] });
+          objectStore.put({ filename: filename, data: mediaMap[filename] });
         }
       }
+      
+      transaction.oncomplete = function() {
+        console.log('Media saved to DB successfully');
+      };
+      transaction.onerror = function(event) {
+        console.error('Error saving media to DB:', event.target.error);
+      };
     }
 
     // SQL.js 初期化
@@ -735,11 +742,6 @@
     async function saveData() {
       localStorage.setItem('flashcard_decks_' + storagePrefix, JSON.stringify(decks));
       localStorage.setItem('flashcard_logs_' + storagePrefix, JSON.stringify(studyLogs));
-    }
-
-    async function loadDataFromCloud() {
-      // クラウド同期を無効化（画像を保護するため）
-      return;
     }
 
     // Ankiインポート処理
@@ -765,7 +767,7 @@
       try {
         var zip = await JSZip.loadAsync(file);
         
-        // 1. mediaマッピング (Base64方式)
+        // 1. mediaマッピング
         var mediaFile = zip.file("media");
         if (mediaFile) {
           var mediaJson = await mediaFile.async("text");
@@ -773,7 +775,10 @@
           for (var key in rawMap) {
             if (rawMap.hasOwnProperty(key)) {
               var name = rawMap[key];
-              var fileData = await zip.file(key).async("base64");
+              var zipEntry = zip.file(key);
+              if (!zipEntry) continue;
+              
+              var fileData = await zipEntry.async("base64");
               var mimeType = name.match(/\.(jpg|jpeg)$/i) ? 'image/jpeg' :
                              name.match(/\.png$/i) ? 'image/png' :
                              name.match(/\.gif$/i) ? 'image/gif' :
@@ -859,22 +864,29 @@
       showScreen('home');
     }
 
+    // AnkiのHTMLコンテンツ内の画像タグをBase64に置換 (Regexを強化)
     function processAnkiContent(text) {
       if (!text) return "";
-      return text.replace(/<img src="([^"]+)">/g, function(match, filename) {
+      // <img src="filename.jpg"> 形式を置換。属性の順序や閉じタグの差異に対応。
+      return text.replace(/<img [^>]*src=["']([^"']+)["'][^>]*>/gi, function(match, filename) {
         var base64Image = mediaMap[filename];
         return base64Image ? '<img src="' + base64Image + '" class="card-image">' : match;
       });
     }
 
     function renderCard() {
-      if (currentCardIndex >= currentDeck.cards.length) {
+      if (!currentDeck || currentCardIndex >= currentDeck.cards.length) {
         finishStudy();
         return;
       }
       var card = currentDeck.cards[currentCardIndex];
       var frontHtml = '<div class="study-card-front">' + processAnkiContent(card.front) + '</div>';
-      if (card.frontImage) frontHtml += '<img src="' + card.frontImage + '" class="card-image">';
+      
+      // 手動アップロード画像の表示
+      if (card.frontImage) {
+        var imgData = mediaMap[card.frontImage] || card.frontImage; // 後方互換性のため
+        frontHtml += '<img src="' + imgData + '" class="card-image">';
+      }
       
       document.getElementById('card-front').innerHTML = frontHtml;
       document.getElementById('card-back').classList.add('hidden');
@@ -891,7 +903,12 @@
       var card = currentDeck.cards[currentCardIndex];
       var backHtml = '<div class="study-card-back">' + processAnkiContent(card.back) + '</div>';
       if (card.extra) backHtml += '<div style="margin-top:1rem; font-size:0.9rem; color:var(--muted);">' + processAnkiContent(card.extra) + '</div>';
-      if (card.backImage) backHtml += '<img src="' + card.backImage + '" class="card-image">';
+      
+      // 手動アップロード画像の表示
+      if (card.backImage) {
+        var imgData = mediaMap[card.backImage] || card.backImage; // 後方互換性のため
+        backHtml += '<img src="' + imgData + '" class="card-image">';
+      }
       
       document.getElementById('card-back').innerHTML = backHtml;
       document.getElementById('card-back').classList.remove('hidden');
@@ -929,11 +946,15 @@
     function showScreen(id) {
       document.querySelectorAll('.screen').forEach(function(s) { s.classList.remove('active'); });
       document.querySelectorAll('.nav-item').forEach(function(n) { n.classList.remove('active'); });
-      document.getElementById(id + '-screen').classList.add('active');
+      
+      var target = document.getElementById(id + '-screen');
+      if (target) target.classList.add('active');
+      
       var navItems = document.querySelectorAll('.nav-item');
       if (id === 'home') navItems[0].classList.add('active');
       if (id === 'stats') navItems[1].classList.add('active');
       if (id === 'import') navItems[2].classList.add('active');
+      
       if (id === 'home') renderDecks();
       if (id === 'stats') renderStats();
     }
@@ -997,7 +1018,7 @@
       list.innerHTML = currentDeck.cards.map(function(c, i) {
         return '<div class="card">' +
           '<div style="font-size:0.875rem; font-weight:600;">カード ' + (i+1) + '</div>' +
-          '<div style="font-size:0.75rem; color:var(--muted);">' + c.front.substring(0, 30) + '...</div>' +
+          '<div style="font-size:0.75rem; color:var(--muted);">' + (c.front ? c.front.substring(0, 30) : '画像のみ') + '...</div>' +
         '</div>';
       }).join('');
       showScreen('deck-detail');
@@ -1031,19 +1052,21 @@
     function saveCard() {
       var f = document.getElementById('card-front-input').value;
       var b = document.getElementById('card-back-input').value;
-      if (!f) return alert("問題を入れてください");
+      if (!f && !frontImageFilename) return alert("問題または画像を入れてください");
+      
       currentDeck.cards.push({ 
         id: Date.now().toString(), 
         front: f, 
         back: b, 
-        frontImage: frontImageData,
-        backImage: backImageData,
+        frontImage: frontImageFilename, // Filename を保存
+        backImage: backImageFilename,   // Filename を保存
         interval: 0, 
         easeFactor: 2.5, 
         nextReviewDate: new Date().toISOString() 
       });
-      frontImageData = null;
-      backImageData = null;
+      
+      frontImageFilename = null;
+      backImageFilename = null;
       document.getElementById('front-image-preview').classList.add('hidden');
       document.getElementById('back-image-preview').classList.add('hidden');
       document.getElementById('card-front-input').value = '';
@@ -1052,19 +1075,27 @@
       showDeckDetail();
     }
     
-    // 画像アップロード処理
+    // 手動画像アップロード処理 (IndexedDBに保存するように変更)
     async function handleImageUpload(side, event) {
       var file = event.target.files[0];
       if (!file) return;
+      
       var reader = new FileReader();
       reader.onload = function(e) {
+        var data = e.target.result;
+        var filename = 'manual_' + Date.now() + '_' + file.name;
+        
+        // メモリと IndexedDB に保存
+        mediaMap[filename] = data;
+        saveMediaToDB();
+        
         if (side === 'front') {
-          frontImageData = e.target.result;
-          document.getElementById('front-image-img').src = frontImageData;
+          frontImageFilename = filename;
+          document.getElementById('front-image-img').src = data;
           document.getElementById('front-image-preview').classList.remove('hidden');
         } else {
-          backImageData = e.target.result;
-          document.getElementById('back-image-img').src = backImageData;
+          backImageFilename = filename;
+          document.getElementById('back-image-img').src = data;
           document.getElementById('back-image-preview').classList.remove('hidden');
         }
       };
@@ -1075,9 +1106,11 @@
       var data = {
         decks: decks,
         studyLogs: studyLogs,
+        // メディアデータもエクスポートに含める (サイズに注意)
+        mediaMap: mediaMap,
         exportDate: new Date().toISOString()
       };
-      var jsonString = JSON.stringify(data, null, 2);
+      var jsonString = JSON.stringify(data);
       var blob = new Blob([jsonString], { type: 'application/json' });
       var url = URL.createObjectURL(blob);
       var a = document.createElement('a');
@@ -1103,6 +1136,10 @@
           if (confirm('現在のデータを上書きしますか？\nデッキ数: ' + data.decks.length)) {
             decks = data.decks;
             studyLogs = data.studyLogs || [];
+            if (data.mediaMap) {
+              mediaMap = data.mediaMap;
+              saveMediaToDB();
+            }
             saveData();
             renderDecks();
             alert('インポート完了しました');
