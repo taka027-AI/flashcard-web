@@ -704,27 +704,6 @@
     async function saveData() {
       localStorage.setItem('flashcard_decks', JSON.stringify(decks));
       localStorage.setItem('flashcard_logs', JSON.stringify(studyLogs));
-      if (user && db) {
-        try {
-          for (const deck of decks) {
-            const deckRef = db.collection('users').doc(user.uid).collection('decks').doc(deck.id);
-            
-            // 画像データを除外して保存
-            const deckWithoutImages = {
-              ...deck,
-              cards: deck.cards.map(card => ({
-                ...card,
-                frontImage: undefined,
-                backImage: undefined,
-                front: card.front ? card.front.replace(/<img[^>]+>/g, '') : card.front,
-                back: card.back ? card.back.replace(/<img[^>]+>/g, '') : card.back,
-                extra: card.extra ? card.extra.replace(/<img[^>]+>/g, '') : card.extra
-              }))
-            };
-            await deckRef.set(deckWithoutImages);
-          }
-        } catch (e) { console.error("クラウド保存エラー:", e); }
-      }
     }
 
     async function loadDataFromCloud() {
@@ -997,14 +976,6 @@
     async function deleteDeck(id) {
       if (!confirm("削除しますか？")) return;
       decks = decks.filter(function(d) { return d.id !== id; });
-      
-      // Firebaseからも削除
-      if (user && db) {
-        try {
-          await db.collection('users').doc(user.uid).collection('decks').doc(id).delete();
-        } catch (e) { console.error("クラウド削除エラー:", e); }
-      }
-      
       saveData();
       renderDecks();
     }
