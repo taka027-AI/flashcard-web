@@ -182,7 +182,6 @@
       display: flex;
       gap: 0.5rem;
       margin-top: 1rem;
-      flex-wrap: wrap;
     }
 
     .empty-state {
@@ -239,6 +238,10 @@
     .nav-item.active {
       background: var(--primary);
       color: white;
+    }
+
+    nav-item:hover:not(.active) {
+      background: var(--secondary);
     }
 
     .upload-area {
@@ -428,24 +431,12 @@
       font-size: 1.25rem;
       font-weight: 600;
       color: var(--foreground);
-      width: 100%;
     }
 
     .study-card-back {
       font-size: 1.125rem;
       color: var(--foreground);
       margin-top: 1rem;
-      width: 100%;
-    }
-
-    .card-image {
-      max-width: 100%;
-      max-height: 350px;
-      border-radius: 0.5rem;
-      margin: 1rem 0;
-      display: block;
-      margin-left: auto;
-      margin-right: auto;
     }
 
     .answer-buttons {
@@ -462,13 +453,27 @@
       border: none;
       cursor: pointer;
       transition: all 0.2s;
+    }
+
+    .answer-button.again {
+      background: var(--error);
       color: white;
     }
 
-    .answer-button.again { background: var(--error); }
-    .answer-button.hard { background: var(--warning); }
-    .answer-button.good { background: var(--primary); }
-    .answer-button.easy { background: var(--success); }
+    .answer-button.hard {
+      background: var(--warning);
+      color: white;
+    }
+
+    .answer-button.good {
+      background: var(--primary);
+      color: white;
+    }
+
+    .answer-button.easy {
+      background: var(--success);
+      color: white;
+    }
 
     .progress-bar {
       width: 100%;
@@ -493,15 +498,17 @@
     }
 
     .delete-button {
+      background: none;
       border: none;
       cursor: pointer;
       padding: 0.25rem;
       opacity: 0.6;
       transition: opacity 0.2s;
-      background: none;
     }
 
-    .delete-button:hover { opacity: 1; }
+    .delete-button:hover {
+      opacity: 1;
+    }
 
     .card-header {
       display: flex;
@@ -510,22 +517,28 @@
       margin-bottom: 0.5rem;
     }
 
-    .card-header-content { flex: 1; }
+    .card-header-content {
+      flex: 1;
+    }
   </style>
 </head>
 <body>
   <div class="container">
+    <!-- Navigation -->
     <div class="nav-bar">
       <div class="nav-item active" onclick="showScreen('home')">ホーム</div>
       <div class="nav-item" onclick="showScreen('stats')">統計</div>
       <div class="nav-item" onclick="showScreen('import')">インポート</div>
     </div>
 
+    <!-- Home Screen -->
     <div id="home-screen" class="screen active">
       <div class="header">
         <h1>FlashCard Pro</h1>
         <p>Anki互換フラッシュカードアプリ</p>
       </div>
+
+      <!-- Stats Summary -->
       <div class="stats-grid" id="home-stats">
         <div class="stats-card">
           <div class="stats-card-label">デッキ数</div>
@@ -540,69 +553,185 @@
           <div class="stats-card-value warning" id="due-cards">0</div>
         </div>
       </div>
+
+      <!-- Decks List -->
       <div id="decks-list"></div>
+
+      <!-- Empty State -->
       <div id="empty-state" class="empty-state">
         <div class="empty-state-icon">📚</div>
         <div class="empty-state-title">デッキがありません</div>
         <div class="empty-state-text">新しいデッキを作成するか、Anki形式をインポートしてください</div>
       </div>
+
+      <!-- Action Buttons -->
       <div class="button-group">
-        <button class="button" onclick="createDeck()">+ 新規デッキ作成</button>
-        <button class="button button-secondary" onclick="showScreen('import')">📤 Anki形式をインポート</button>
-        <button class="button button-secondary" onclick="exportData()">💾 データエクスポート</button>
-        <button class="button button-secondary" onclick="document.getElementById('import-json-input').click()">📥 データインポート</button>
+        <button class="button" onclick="createDeck()">
+          <span>+</span>
+          <span>新規デッキ作成</span>
+        </button>
+        <button class="button button-secondary" onclick="showScreen('import')">
+          <span>📤</span>
+          <span>Anki形式をインポート</span>
+        </button>
+        <button class="button button-secondary" onclick="exportData()">
+          <span>💾</span>
+          <span>データエクスポート</span>
+        </button>
+        <button class="button button-secondary" onclick="document.getElementById('import-json-input').click()">
+          <span>📥</span>
+          <span>データインポート</span>
+        </button>
         <button class="button button-secondary" id="auth-button" onclick="handleAuth()">
-          <span id="auth-icon">🔐</span> <span id="auth-text">ログイン</span>
+          <span id="auth-icon">🔐</span>
+          <span id="auth-text">ログイン</span>
         </button>
         <input type="file" id="import-json-input" accept=".json" onchange="importData(event)" style="display: none;">
       </div>
     </div>
 
+    <!-- Stats Screen -->
     <div id="stats-screen" class="screen">
-      <div class="header"><h1>統計</h1><p>学習の進捗と傾向を確認</p></div>
-      <div class="stats-grid">
-        <div class="stats-card"><div class="stats-card-label">今日の学習</div><div class="stats-card-value" id="today-reviews">0</div><div class="stats-card-label">枚</div></div>
-        <div class="stats-card"><div class="stats-card-label">連続学習</div><div class="stats-card-value warning" id="streak-days">0</div><div class="stats-card-label">日</div></div>
-        <div class="stats-card"><div class="stats-card-label">正解率</div><div class="stats-card-value success" id="correct-rate">0</div><div class="stats-card-label">%</div></div>
+      <div class="header">
+        <h1>統計</h1>
+        <p>学習の進捗と傾向を確認</p>
       </div>
-      <div class="card"><div class="card-title">累計</div><div class="card-stats">
-        <div class="stat"><div class="stat-value" id="total-reviews">0</div><div class="stat-label">総復習回数</div></div>
-        <div class="stat"><div class="stat-value" id="total-time">0分</div><div class="stat-label">総学習時間</div></div>
-      </div></div>
-      <div class="button-group"><button class="button button-destructive" onclick="clearStudyLogs()">🗑️ 学習統計を削除</button></div>
+
+      <div class="stats-grid">
+        <div class="stats-card">
+          <div class="stats-card-label">今日の学習</div>
+          <div class="stats-card-value" id="today-reviews">0</div>
+          <div class="stats-card-label">枚</div>
+        </div>
+        <div class="stats-card">
+          <div class="stats-card-label">連続学習</div>
+          <div class="stats-card-value warning" id="streak-days">0</div>
+          <div class="stats-card-label">日</div>
+        </div>
+        <div class="stats-card">
+          <div class="stats-card-label">正解率</div>
+          <div class="stats-card-value success" id="correct-rate">0</div>
+          <div class="stats-card-label">%</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">累計</div>
+        <div class="card-stats">
+          <div class="stat">
+            <div class="stat-value" id="total-reviews">0</div>
+            <div class="stat-label">総復習回数</div>
+          </div>
+          <div class="stat">
+            <div class="stat-value" id="total-time">0分</div>
+            <div class="stat-label">総学習時間</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">カードの内訳</div>
+        <div class="card-stats">
+          <div class="stat">
+            <div class="stat-value primary" id="new-cards">0</div>
+            <div class="stat-label">新規</div>
+          </div>
+          <div class="stat">
+            <div class="stat-value warning" id="learning-cards">0</div>
+            <div class="stat-label">学習中</div>
+          </div>
+          <div class="stat">
+            <div class="stat-value success" id="mature-cards">0</div>
+            <div class="stat-label">習熟</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="button-group">
+        <button class="button button-secondary" onclick="clearStudyLogs()">
+          <span>🗑️</span>
+          <span>学習統計を削除</span>
+        </button>
+      </div>
     </div>
 
+    <!-- Import Screen -->
     <div id="import-screen" class="screen">
-      <div class="header"><h1>Anki形式をインポート</h1><p>.apkgファイルをインポートしてデッキを作成</p></div>
-      <div class="upload-area" onclick="document.getElementById('fileInput').click()">
-        <input type="file" id="fileInput" accept=".apkg" onchange="handleFileSelect(event)">
-        <div class="upload-icon">☁️</div><div class="upload-title">ファイルを選択</div><div class="upload-text">タップして .apkg ファイルを選択してください</div>
-        <div class="file-info hidden" id="fileInfo"><div class="file-info-name" id="fileName"></div><div class="file-info-size" id="fileSize"></div></div>
+      <div class="header">
+        <h1>Anki形式をインポート</h1>
+        <p>.apkgファイルをインポートしてデッキを作成</p>
       </div>
-      <div class="loading hidden" id="loading"><div class="spinner"></div><div class="loading-text" id="loadingText">処理中...</div></div>
+
+      <div class="card">
+        <div class="card-title">使い方</div>
+        <div class="card-description">
+          Anki形式のデッキファイル（.apkg）を選択すると、内容を完全解析してデッキ・カード・学習状態・画像をインポートします。複数デッキを含むファイルにも対応しています。
+        </div>
+      </div>
+
+      <div class="upload-area" onclick="document.getElementById('fileInput').click()">
+        <input type="file" id="fileInput" accept=".apkg,.zip,.csv,.tsv" onchange="handleFileSelect(event)">
+        <div class="upload-icon">☁️</div>
+        <div class="upload-title">ファイルを選択</div>
+        <div class="upload-text">タップして .apkg ファイルを選択してください</div>
+        <div class="file-info hidden" id="fileInfo">
+          <div class="file-info-name" id="fileName"></div>
+          <div class="file-info-size" id="fileSize"></div>
+        </div>
+      </div>
+
+      <div class="loading hidden" id="loading">
+        <div class="spinner"></div>
+        <div class="loading-text" id="loadingText">処理中...</div>
+      </div>
+
       <div class="preview hidden" id="preview">
-        <div class="preview-header"><span class="preview-icon">✓</span><span class="preview-title">解析完了</span></div>
+        <div class="preview-header">
+          <span class="preview-icon">✓</span>
+          <span class="preview-title">解析完了</span>
+        </div>
         <div class="card-stats">
-          <div class="stat"><div class="stat-value primary" id="preview-decks">0</div><div class="stat-label">デッキ</div></div>
-          <div class="stat"><div class="stat-value success" id="preview-cards">0</div><div class="stat-label">カード</div></div>
-          <div class="stat"><div class="stat-value warning" id="preview-media">0</div><div class="stat-label">画像</div></div>
+          <div class="stat">
+            <div class="stat-value primary" id="preview-decks">0</div>
+            <div class="stat-label">デッキ</div>
+          </div>
+          <div class="stat">
+            <div class="stat-value success" id="preview-cards">0</div>
+            <div class="stat-label">カード</div>
+          </div>
+          <div class="stat">
+            <div class="stat-value warning" id="preview-media">0</div>
+            <div class="stat-label">画像</div>
+          </div>
         </div>
         <div id="preview-deck-list"></div>
       </div>
-      <button class="button hidden" id="importButton" onclick="importDeck()">⬇️ インポートを実行</button>
+
+      <button class="button hidden" id="importButton" onclick="importDeck()">
+        <span>⬇️</span>
+        <span>インポートを実行</span>
+      </button>
     </div>
 
+    <!-- Study Screen -->
     <div id="study-screen" class="screen">
       <div class="header">
-        <button class="button button-secondary" onclick="showScreen('home')" style="margin-bottom: 1rem;">← 戻る</button>
+        <button class="button button-secondary" onclick="showScreen('home')" style="margin-bottom: 1rem;">
+          ← 戻る
+        </button>
         <h1 id="study-deck-name">デッキ名</h1>
       </div>
-      <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width: 0%"></div></div>
+
+      <div class="progress-bar">
+        <div class="progress-fill" id="progress-fill" style="width: 0%"></div>
+      </div>
       <div class="progress-text" id="progress-text">0 / 0</div>
+
       <div class="study-card" id="study-card" onclick="flipCard()">
         <div class="study-card-front" id="card-front">表面</div>
         <div class="study-card-back hidden" id="card-back">裏面</div>
       </div>
+
       <div class="answer-buttons hidden" id="answer-buttons">
         <button class="answer-button again" onclick="answerCard('again')">もう一度</button>
         <button class="answer-button hard" onclick="answerCard('hard')">難しい</button>
@@ -611,50 +740,148 @@
       </div>
     </div>
 
+    <!-- Create Deck Screen -->
     <div id="create-deck-screen" class="screen">
-      <div class="header"><button class="button button-secondary" onclick="showScreen('home')" style="margin-bottom: 1rem;">← 戻る</button><h1>新規デッキ作成</h1></div>
-      <div class="card">
-        <div class="card-title">デッキ名</div><input type="text" id="deck-name-input" style="width:100%; padding:0.75rem; border:1px solid var(--border); border-radius:0.5rem; margin-bottom:1rem;">
-        <div class="card-title">説明</div><textarea id="deck-desc-input" style="width:100%; padding:0.75rem; border:1px solid var(--border); border-radius:0.5rem; margin-bottom:1rem; min-height:80px;"></textarea>
+      <div class="header">
+        <button class="button button-secondary" onclick="showScreen('home')" style="margin-bottom: 1rem;">
+          ← 戻る
+        </button>
+        <h1>新規デッキ作成</h1>
       </div>
-      <div class="button-group"><button class="button" onclick="saveDeck()">💾 保存</button><button class="button button-secondary" onclick="showScreen('home')">キャンセル</button></div>
+
+      <div class="card">
+        <div class="card-title">デッキ名</div>
+        <input type="text" id="deck-name-input" class="input-field" placeholder="デッキ名を入力" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border); border-radius: 0.5rem; margin-bottom: 1rem;">
+        
+        <div class="card-title">説明</div>
+        <textarea id="deck-desc-input" class="input-field" placeholder="説明を入力（省略可）" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border); border-radius: 0.5rem; margin-bottom: 1rem; min-height: 80px;"></textarea>
+      </div>
+
+      <div class="button-group">
+        <button class="button" onclick="saveDeck()">
+          <span>💾</span>
+          <span>保存</span>
+        </button>
+        <button class="button button-secondary" onclick="showScreen('home')">
+          <span>キャンセル</span>
+        </button>
+      </div>
     </div>
 
+    <!-- Add Card Screen -->
     <div id="add-card-screen" class="screen">
-      <div class="header"><button class="button button-secondary" onclick="showDeckDetail()" style="margin-bottom: 1rem;">← 戻る</button><h1>カード追加</h1></div>
+      <div class="header">
+        <button class="button button-secondary" onclick="showDeckDetail()" style="margin-bottom: 1rem;">
+          ← 戻る
+        </button>
+        <h1>カード追加</h1>
+      </div>
+
       <div class="card">
-        <div class="card-title">表面（問題）</div><textarea id="card-front-input" style="width:100%; padding:0.75rem; border:1px solid var(--border); border-radius:0.5rem; margin-bottom:1rem; min-height:80px;"></textarea>
-        <div class="card-title">表面の画像</div><div class="upload-area" onclick="document.getElementById('front-image-input').click()" style="padding:1rem;">
+        <div class="card-title">表面（問題）</div>
+        <textarea id="card-front-input" class="input-field" placeholder="問題を入力" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border); border-radius: 0.5rem; margin-bottom: 1rem; min-height: 80px;"></textarea>
+        
+        <div class="card-title">表面の画像</div>
+        <div class="upload-area" onclick="document.getElementById('front-image-input').click()" style="padding: 1rem;">
           <input type="file" id="front-image-input" accept="image/*" onchange="handleImageUpload('front', event)">
-          <div class="upload-icon" style="font-size:1.5rem;">📷</div><div class="upload-text">タップして画像を選択</div>
-          <div id="front-image-preview" class="hidden"><img id="front-image-img" style="max-width:100%; max-height:200px; border-radius:0.5rem;"></div>
+          <div class="upload-icon" style="font-size: 1.5rem;">📷</div>
+          <div class="upload-text" style="font-size: 0.875rem;">タップして画像を選択</div>
+          <div id="front-image-preview" class="hidden" style="margin-top: 0.5rem;">
+            <img id="front-image-img" style="max-width: 100%; max-height: 200px; border-radius: 0.5rem;">
+          </div>
         </div>
-        <div class="card-title" style="margin-top:1rem;">裏面（答え）</div><textarea id="card-back-input" style="width:100%; padding:0.75rem; border:1px solid var(--border); border-radius:0.5rem; margin-bottom:1rem; min-height:80px;"></textarea>
-        <div class="card-title">裏面の画像</div><div class="upload-area" onclick="document.getElementById('back-image-input').click()" style="padding:1rem;">
+
+        <div class="card-title" style="margin-top: 1rem;">裏面（答え）</div>
+        <textarea id="card-back-input" class="input-field" placeholder="答えを入力" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border); border-radius: 0.5rem; margin-bottom: 1rem; min-height: 80px;"></textarea>
+        
+        <div class="card-title">裏面の画像</div>
+        <div class="upload-area" onclick="document.getElementById('back-image-input').click()" style="padding: 1rem;">
           <input type="file" id="back-image-input" accept="image/*" onchange="handleImageUpload('back', event)">
-          <div class="upload-icon" style="font-size:1.5rem;">📷</div><div class="upload-text">タップして画像を選択</div>
-          <div id="back-image-preview" class="hidden"><img id="back-image-img" style="max-width:100%; max-height:200px; border-radius:0.5rem;"></div>
+          <div class="upload-icon" style="font-size: 1.5rem;">📷</div>
+          <div class="upload-text" style="font-size: 0.875rem;">タップして画像を選択</div>
+          <div id="back-image-preview" class="hidden" style="margin-top: 0.5rem;">
+            <img id="back-image-img" style="max-width: 100%; max-height: 200px; border-radius: 0.5rem;">
+          </div>
         </div>
       </div>
-      <div class="button-group"><button class="button" onclick="saveCard()">💾 保存</button><button class="button button-secondary" onclick="showDeckDetail()">キャンセル</button></div>
+
+      <div class="button-group">
+        <button class="button" onclick="saveCard()">
+          <span>💾</span>
+          <span>保存</span>
+        </button>
+        <button class="button button-secondary" onclick="showDeckDetail()">
+          <span>キャンセル</span>
+        </button>
+      </div>
     </div>
 
+    <!-- Deck Detail Screen -->
     <div id="deck-detail-screen" class="screen">
-      <div class="header"><button class="button button-secondary" onclick="showScreen('home')" style="margin-bottom: 1rem;">← 戻る</button><h1 id="detail-deck-name">デッキ名</h1></div>
-      <div class="card"><div class="card-title" id="detail-deck-desc">説明</div><div class="card-stats"><div class="stat"><div class="stat-value" id="detail-card-count">0</div><div class="stat-label">カード数</div></div></div></div>
+      <div class="header">
+        <button class="button button-secondary" onclick="showScreen('home')" style="margin-bottom: 1rem;">
+          ← 戻る
+        </button>
+        <h1 id="detail-deck-name">デッキ名</h1>
+      </div>
+
+      <div class="card">
+        <div class="card-title" id="detail-deck-desc">説明</div>
+        <div class="card-stats">
+          <div class="stat">
+            <div class="stat-value" id="detail-card-count">0</div>
+            <div class="stat-label">カード数</div>
+          </div>
+        </div>
+      </div>
+
       <div id="detail-cards-list"></div>
-      <div class="button-group"><button class="button" onclick="showAddCard()">+ カード追加</button><button class="button button-secondary" onclick="startStudy(currentDeck.id)">📚 学習開始</button></div>
+
+      <div class="button-group">
+        <button class="button" onclick="showAddCard()">
+          <span>+</span>
+          <span>カード追加</span>
+        </button>
+        <button class="button button-secondary" onclick="startStudy(currentDeck.id)">
+          <span>📚</span>
+          <span>学習開始</span>
+        </button>
+      </div>
     </div>
 
+    <!-- Login Screen -->
     <div id="login-screen" class="screen">
-      <div class="header"><h1>ログイン</h1><p>クラウド同期でデータを共有</p></div>
-      <div class="card"><div class="card-title">パスワード</div><input type="password" id="password-input" style="width:100%; padding:0.75rem; border:1px solid var(--border); border-radius:0.5rem; margin-bottom:1rem;"></div>
-      <div class="button-group"><button class="button" onclick="login()">🔐 ログイン</button><button class="button button-secondary" onclick="showScreen('home')">キャンセル</button></div>
+      <div class="header">
+        <h1>ログイン</h1>
+        <p>クラウド同期でデータを共有</p>
+      </div>
+
+      <div class="card">
+        <div class="card-title">パスワード</div>
+        <input type="password" id="password-input" class="input-field" placeholder="パスワードを入力" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border); border-radius: 0.5rem; margin-bottom: 1rem;">
+      </div>
+
+      <div class="button-group">
+        <button class="button" onclick="login()">
+          <span>🔐</span>
+          <span>ログイン</span>
+        </button>
+        <button class="button button-secondary" onclick="showScreen('home')">
+          <span>キャンセル</span>
+        </button>
+      </div>
+
+      <div class="card" style="margin-top: 1rem;">
+        <div class="card-description">
+          ログインすると、スマホとMacでデッキ・カード・統計が自動同期されます。
+        </div>
+      </div>
     </div>
+
   </div>
 
   <script>
-    // Firebase 設定 (元の正しい値を復元)
+    // Firebase初期化設定
     const firebaseConfig = {
       apiKey: "AIzaSyCKuTrjeAYG_thmnazHSbfJj4HzzOtIj4k",
       authDomain: "anki-neo.firebaseapp.com",
@@ -665,382 +892,409 @@
       measurementId: "G-TB23M3X5LF"
     };
 
-    let app, auth, db, user = null;
+    // Firebase初期化
+    let db = null;
+    let auth = null;
+    let user = null;
+
     try {
       firebase.initializeApp(firebaseConfig);
       auth = firebase.auth();
       db = firebase.firestore();
-      auth.onAuthStateChanged(function(u) {
-        user = u;
-        updateAuthButton();
-        if (user) loadDataFromCloud();
-      });
-    } catch (e) { console.error("Firebase初期化エラー:", e); }
 
-    // 状態管理
-    let decks = JSON.parse(localStorage.getItem('flashcard_decks') || '[]');
-    let studyLogs = JSON.parse(localStorage.getItem('flashcard_logs') || '[]');
+      // 認証状態監視
+      auth.onAuthStateChanged((currentUser) => {
+        user = currentUser;
+        updateAuthButton();
+        if (user) {
+          // ログイン済み: Firestoreからデータを同期
+          syncFromFirestore();
+        }
+      });
+    } catch (error) {
+      console.error('Firebase初期化エラー:', error);
+      // Firebase設定がまだの場合はlocalStorageのみ使用
+    }
+
+    // Data storage
+    let decks = [];
+    let studyLogs = [];
+    let selectedFile = null;
+    let parsedData = null;
     let currentDeck = null;
     let currentCardIndex = 0;
     let isCardFlipped = false;
     let studyStartTime = null;
     let frontImageData = null;
     let backImageData = null;
-    let SQL = null;
-    let mediaMap = {};
 
-    // SQL.js 初期化
-    initSqlJs({ locateFile: function(file) { return `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.wasm`; } }).then(function(sql) {
-      SQL = sql;
-      renderDecks();
-    });
+    // Load data from localStorage
+    function loadData() {
+      const savedDecks = localStorage.getItem('flashcard_decks');
+      const savedLogs = localStorage.getItem('flashcard_study_logs');
+      if (savedDecks) decks = JSON.parse(savedDecks);
+      if (savedLogs) studyLogs = JSON.parse(savedLogs);
+    }
 
-    // データ保存
-    async function saveData() {
+    // Save data to localStorage
+    function saveData() {
       localStorage.setItem('flashcard_decks', JSON.stringify(decks));
-      localStorage.setItem('flashcard_logs', JSON.stringify(studyLogs));
+      localStorage.setItem('flashcard_study_logs', JSON.stringify(studyLogs));
+      
+      // ログイン済みの場合はFirestoreにも保存
       if (user && db) {
-        try {
-          for (const deck of decks) {
-            const deckRef = db.collection('users').doc(user.uid).collection('decks').doc(deck.id);
-            // 画像データが大きすぎる場合は警告が出る可能性がありますが、保存は試みます
-            await deckRef.set(deck);
-          }
-        } catch (e) { console.error("クラウド保存エラー:", e); }
+        syncToFirestore();
       }
     }
 
-    async function loadDataFromCloud() {
+    // Firestoreからデータを同期
+    async function syncFromFirestore() {
       if (!user || !db) return;
+
       try {
-        const snapshot = await db.collection('users').doc(user.uid).collection('decks').get();
-        const cloudDecks = [];
-        snapshot.forEach(function(doc) { cloudDecks.push(doc.data()); });
-        if (cloudDecks.length > 0) {
-          decks = cloudDecks;
-          saveData();
+        // デッキを取得
+        const decksSnapshot = await db.collection('users').doc(user.uid).collection('decks').get();
+        const firestoreDecks = [];
+        decksSnapshot.forEach(doc => {
+          firestoreDecks.push(doc.data());
+        });
+
+        // 学習ログを取得
+        const logsSnapshot = await db.collection('users').doc(user.uid).collection('studyLogs').get();
+        const firestoreLogs = [];
+        logsSnapshot.forEach(doc => {
+          firestoreLogs.push(doc.data());
+        });
+
+        // FirestoreのデータがあればlocalStorageを更新
+        if (firestoreDecks.length > 0 || firestoreLogs.length > 0) {
+          decks = firestoreDecks;
+          studyLogs = firestoreLogs;
+          localStorage.setItem('flashcard_decks', JSON.stringify(decks));
+          localStorage.setItem('flashcard_study_logs', JSON.stringify(studyLogs));
           renderDecks();
         }
-      } catch (e) { console.error("クラウド読み込みエラー:", e); }
+      } catch (error) {
+        console.error('Firestore同期エラー:', error);
+      }
     }
 
-    // Ankiインポート処理
-    let tempImportedDecks = [];
-    async function handleFileSelect(event) {
-      const file = event.target.files[0];
-      if (!file) return;
-      
-      const fileInfo = document.getElementById('fileInfo');
-      const fileName = document.getElementById('fileName');
-      const fileSize = document.getElementById('fileSize');
-      const loading = document.getElementById('loading');
-      const preview = document.getElementById('preview');
-      const importButton = document.getElementById('importButton');
-      
-      fileName.textContent = file.name;
-      fileSize.textContent = `${(file.size / 1024 / 1024).toFixed(2)} MB`;
-      fileInfo.classList.remove('hidden');
-      loading.classList.remove('hidden');
-      preview.classList.add('hidden');
-      importButton.classList.add('hidden');
+    // Firestoreへデータを同期
+    async function syncToFirestore() {
+      if (!user || !db) return;
 
       try {
-        const zip = await JSZip.loadAsync(file);
-        
-        // 1. mediaマッピング
-        const mediaFile = zip.file("media");
-        if (mediaFile) {
-          const mediaJson = await mediaFile.async("text");
-          const rawMap = JSON.parse(mediaJson);
-          for (const key in rawMap) {
-            if (rawMap.hasOwnProperty(key)) {
-              const name = rawMap[key];
-              const blob = await zip.file(key).async("blob");
-              mediaMap[name] = URL.createObjectURL(blob);
-            }
-          }
+        // デッキを保存
+        const decksRef = db.collection('users').doc(user.uid).collection('decks');
+        // 既存のデッキを削除
+        const existingDecks = await decksRef.get();
+        const batch = db.batch();
+        existingDecks.forEach(doc => {
+          batch.delete(doc.ref);
+        });
+        await batch.commit();
+
+        // 新しいデッキを追加
+        for (const deck of decks) {
+          await decksRef.doc(deck.id).set(deck);
         }
 
-        // 2. データベース解析
-        const dbFile =
-            zip.file("collection.anki21") ||
-            zip.file("collection.anki21b") ||
-            zip.file("collection.anki2");
-        if (!dbFile) throw new Error("Ankiデータベースが見つかりません");
-        const dbData = await dbFile.async("uint8array");
-        const ankiDb = new SQL.Database(dbData);
+        // 学習ログを保存
+        const logsRef = db.collection('users').doc(user.uid).collection('studyLogs');
+        const existingLogs = await logsRef.get();
+        const batch2 = db.batch();
+        existingLogs.forEach(doc => {
+          batch2.delete(doc.ref);
+        });
+        await batch2.commit();
 
-        let deckInfo;
-        const colRes = ankiDb.exec("SELECT decks FROM col");
-        if (colRes.length) {
-          deckInfo = JSON.parse(colRes[0].values[0][0]);
-        } else {
-          const decksResult = ankiDb.exec("SELECT id, name FROM decks");
-          deckInfo = JSON.parse(decksResult[0].values[0][1]);
+        for (const log of studyLogs) {
+          await logsRef.doc(log.id || Date.now().toString()).set(log);
         }
-        
-        tempImportedDecks = [];
-        let totalCards = 0;
-
-        for (const did in deckInfo) {
-          if (deckInfo.hasOwnProperty(did)) {
-            const d = deckInfo[did];
-            if (d.name === "Default") continue;
-
-            const cardsRes = ankiDb.exec(`SELECT flds, ivl, factor, due FROM notes JOIN cards ON notes.id = cards.nid WHERE cards.did = ${did}`);
-            if (!cardsRes.length) continue;
-
-            const cards = cardsRes[0].values.map(function(v) {
-              const fields = v[0].split('\x1f');
-              return {
-                id: Math.random().toString(36).substr(2, 9),
-                front: fields[0],
-                back: fields[1],
-                extra: fields[2] || "",
-                interval: v[1] || 0,
-                easeFactor: (v[2] || 2500) / 1000,
-                nextReviewDate: new Date(Date.now() + (v[3] || 0) * 86400000).toISOString()
-              };
-            });
-
-            tempImportedDecks.push({
-              id: did,
-              name: d.name,
-              description: "Ankiからインポート",
-              cards: cards,
-              createdAt: new Date().toISOString()
-            });
-            totalCards += cards.length;
-          }
-        }
-
-        document.getElementById('preview-decks').textContent = tempImportedDecks.length;
-        document.getElementById('preview-cards').textContent = totalCards;
-        document.getElementById('preview-media').textContent = Object.keys(mediaMap).length;
-        
-        loading.classList.add('hidden');
-        preview.classList.remove('hidden');
-        importButton.classList.remove('hidden');
-
-      } catch (e) {
-        console.error(e);
-        alert("インポートエラー:\n"+(e && e.message ? e.message : e));
-        loading.classList.add('hidden');
+      } catch (error) {
+        console.error('Firestore保存エラー:', error);
       }
     }
 
-    function importDeck() {
-      decks = decks.concat(tempImportedDecks);
-      saveData();
-      alert("インポートが完了しました！");
-      showScreen('home');
+    // Export data to JSON file
+    function exportData() {
+      const data = {
+        decks: decks,
+        studyLogs: studyLogs,
+        exportDate: new Date().toISOString()
+      };
+
+      const jsonString = JSON.stringify(data, null, 2);
+      const blob = new Blob([jsonString], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `flashcard-backup-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
     }
 
-    function processAnkiContent(text) {
-      if (!text) return "";
-      return text.replace(/<img src="([^"]+)">/g, function(match, filename) {
-        const blobUrl = mediaMap[filename];
-        return blobUrl ? `<img src="${blobUrl}" class="card-image">` : match;
-      });
+    // Import data from JSON file
+    function importData(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const data = JSON.parse(e.target.result);
+          
+          if (!data.decks || !Array.isArray(data.decks)) {
+            alert('無効なファイル形式です');
+            return;
+          }
+
+          if (confirm('現在のデータを上書きしますか？\nデッキ数: ' + data.decks.length)) {
+            decks = data.decks;
+            studyLogs = data.studyLogs || [];
+            saveData();
+            renderDecks();
+            alert('インポート完了しました');
+          }
+        } catch (error) {
+          console.error('インポートエラー:', error);
+          alert('ファイルの読み込みに失敗しました');
+        }
+      };
+      reader.readAsText(file);
+      
+      // ファイル入力をリセット
+      event.target.value = '';
     }
 
-    function renderCard() {
-      if (currentCardIndex >= currentDeck.cards.length) {
-        finishStudy();
+    // ログイン
+    async function login() {
+      const password = document.getElementById('password-input').value.trim();
+      
+      if (password !== 'takataka027') {
+        alert('パスワードが間違っています');
         return;
       }
-      const card = currentDeck.cards[currentCardIndex];
-      let frontHtml = `<div class="study-card-front">${processAnkiContent(card.front)}</div>`;
-      if (card.frontImage) frontHtml += `<img src="${card.frontImage}" class="card-image">`;
-      
-      document.getElementById('card-front').innerHTML = frontHtml;
-      document.getElementById('card-back').classList.add('hidden');
-      document.getElementById('answer-buttons').classList.add('hidden');
-      isCardFlipped = false;
 
-      const progress = ((currentCardIndex) / currentDeck.cards.length) * 100;
-      document.getElementById('progress-fill').style.width = `${progress}%`;
-      document.getElementById('progress-text').textContent = `${currentCardIndex + 1} / ${currentDeck.cards.length}`;
-    }
-
-    function flipCard() {
-      if (isCardFlipped) return;
-      const card = currentDeck.cards[currentCardIndex];
-      let backHtml = `<div class="study-card-back">${processAnkiContent(card.back)}</div>`;
-      if (card.extra) backHtml += `<div style="margin-top:1rem; font-size:0.9rem; color:var(--muted);">${processAnkiContent(card.extra)}</div>`;
-      if (card.backImage) backHtml += `<img src="${card.backImage}" class="card-image">`;
-      
-      document.getElementById('card-back').innerHTML = backHtml;
-      document.getElementById('card-back').classList.remove('hidden');
-      document.getElementById('answer-buttons').classList.remove('hidden');
-      isCardFlipped = true;
-    }
-
-    function answerCard(quality) {
-      const card = currentDeck.cards[currentCardIndex];
-      if (quality === 'again') {
-        card.interval = 0;
-      } else {
-        card.interval = card.interval === 0 ? 1 : Math.ceil(card.interval * card.easeFactor);
+      if (!auth) {
+        alert('Firebaseが設定されていません。管理者に連絡してください。');
+        return;
       }
-      card.nextReviewDate = new Date(Date.now() + card.interval * 86400000).toISOString();
-      
-      studyLogs.push({
-        cardId: card.id,
-        deckId: currentDeck.id,
-        quality: quality,
-        timestamp: new Date().toISOString()
-      });
 
-      currentCardIndex++;
-      renderCard();
-      saveData();
+      try {
+        await auth.signInWithEmailAndPassword('user@example.com', password);
+        showScreen('home');
+      } catch (error) {
+        console.error('ログインエラー:', error);
+        alert('ログインに失敗しました');
+      }
     }
 
-    function finishStudy() {
-      const duration = Math.round((new Date() - studyStartTime) / 1000 / 60);
-      alert(`学習完了！\n時間: ${duration}分`);
+    // ログアウト
+    function logout() {
+      if (auth) {
+        auth.signOut();
+      }
       showScreen('home');
     }
 
-    function showScreen(id) {
-      document.querySelectorAll('.screen').forEach(function(s) { s.classList.remove('active'); });
-      document.querySelectorAll('.nav-item').forEach(function(n) { n.classList.remove('active'); });
-      document.getElementById(`${id}-screen`).classList.add('active');
-      const navItems = document.querySelectorAll('.nav-item');
-      if (id === 'home') navItems[0].classList.add('active');
-      if (id === 'stats') navItems[1].classList.add('active');
-      if (id === 'import') navItems[2].classList.add('active');
-      if (id === 'home') renderDecks();
-      if (id === 'stats') renderStats();
+    // 認証ボタンハンドラー
+    function handleAuth() {
+      if (user) {
+        if (confirm('ログアウトしますか？')) {
+          logout();
+        }
+      } else {
+        showScreen('login');
+      }
     }
 
+    // 認証状態に応じてボタンを更新
+    function updateAuthButton() {
+      const authIcon = document.getElementById('auth-icon');
+      const authText = document.getElementById('auth-text');
+      
+      if (user) {
+        authIcon.textContent = '🔓';
+        authText.textContent = 'ログアウト';
+      } else {
+        authIcon.textContent = '🔐';
+        authText.textContent = 'ログイン';
+      }
+    }
+
+    // Show screen
+    function showScreen(screenId) {
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+      
+      document.getElementById(`${screenId}-screen`).classList.add('active');
+      
+      const navIndex = ['home', 'stats', 'import'].indexOf(screenId);
+      if (navIndex >= 0) {
+        document.querySelectorAll('.nav-item')[navIndex].classList.add('active');
+      }
+
+      if (screenId === 'home') renderDecks();
+      if (screenId === 'stats') renderStats();
+    }
+
+    // Render decks
     function renderDecks() {
       const container = document.getElementById('decks-list');
-      const empty = document.getElementById('empty-state');
+      const emptyState = document.getElementById('empty-state');
+      
       if (decks.length === 0) {
         container.innerHTML = '';
-        empty.classList.remove('hidden');
-      } else {
-        empty.classList.add('hidden');
-        container.innerHTML = decks.map(function(d) {
-          return `
-            <div class="card" onclick="openDeckDetail('${d.id}')">
-              <div class="card-header">
-                <div class="card-header-content">
-                  <div class="card-title">${d.name}</div>
-                  <div class="card-description">${d.description || ''}</div>
-                </div>
-                <button class="delete-button" onclick="event.stopPropagation(); deleteDeck('${d.id}')">🗑️</button>
+        emptyState.classList.remove('hidden');
+        updateHomeStats();
+        return;
+      }
+
+      emptyState.classList.add('hidden');
+      
+      const now = new Date();
+      container.innerHTML = decks.map(deck => {
+        const newCount = deck.cards.filter(c => c.interval === 0).length;
+        const reviewCount = deck.cards.filter(c => c.interval > 0 && new Date(c.nextReviewDate) <= now).length;
+        
+        return `
+          <div class="card" onclick="openDeckDetail('${deck.id}')">
+            <div class="card-header">
+              <div class="card-header-content">
+                <div class="card-title">${deck.name}</div>
+                ${deck.description ? `<div class="card-description">${deck.description}</div>` : ''}
               </div>
-              <div class="card-stats">
-                <div class="stat"><div class="stat-label">カード</div><div class="stat-value">${d.cards.length}</div></div>
-                <button class="button" style="margin-left:auto;" onclick="event.stopPropagation(); startStudy('${d.id}')">学習</button>
+              <button class="delete-button" onclick="event.stopPropagation(); deleteDeck('${deck.id}')">🗑️</button>
+            </div>
+            <div class="card-stats">
+              <div class="stat">
+                <div class="stat-label">新規</div>
+                <div class="stat-value primary">${newCount}</div>
+              </div>
+              <div class="stat">
+                <div class="stat-label">復習</div>
+                <div class="stat-value warning">${reviewCount}</div>
+              </div>
+              <div class="stat">
+                <div class="stat-label">合計</div>
+                <div class="stat-value">${deck.cards.length}</div>
+              </div>
+              <div class="stat">
+                <button class="button" style="font-size: 0.75rem; padding: 0.5rem 0.75rem;" onclick="event.stopPropagation(); startStudy('${deck.id}')">学習</button>
               </div>
             </div>
-          `;
-        }).join('');
-      }
-      updateHomeStats();
-    }
-
-    function updateHomeStats() {
-      document.getElementById('total-decks').textContent = decks.length;
-      let total = 0;
-      decks.forEach(function(d) { total += d.cards.length; });
-      document.getElementById('total-cards').textContent = total;
-    }
-
-    function startStudy(id) {
-      currentDeck = decks.find(function(d) { return d.id === id; });
-      if (!currentDeck || currentDeck.cards.length === 0) return alert("カードがありません");
-      currentCardIndex = 0;
-      studyStartTime = new Date();
-      document.getElementById('study-deck-name').textContent = currentDeck.name;
-      showScreen('study');
-      renderCard();
-    }
-
-    function openDeckDetail(id) {
-      currentDeck = decks.find(function(d) { return d.id === id; });
-      showDeckDetail();
-    }
-
-    function showDeckDetail() {
-      document.getElementById('detail-deck-name').textContent = currentDeck.name;
-      document.getElementById('detail-deck-desc').textContent = currentDeck.description;
-      document.getElementById('detail-card-count').textContent = currentDeck.cards.length;
-      const list = document.getElementById('detail-cards-list');
-      list.innerHTML = currentDeck.cards.map(function(c, i) {
-        return `
-          <div class="card">
-            <div style="font-size:0.875rem; font-weight:600;">カード ${i+1}</div>
-            <div style="font-size:0.75rem; color:var(--muted);">${c.front.substring(0, 30)}...</div>
           </div>
         `;
       }).join('');
+
+      updateHomeStats();
+    }
+
+    // Update home stats
+    function updateHomeStats() {
+      const now = new Date();
+      let totalCards = 0;
+      let dueCards = 0;
+
+      decks.forEach(deck => {
+        totalCards += deck.cards.length;
+        deck.cards.forEach(card => {
+          if (card.interval > 0 && new Date(card.nextReviewDate) <= now) {
+            dueCards++;
+          }
+        });
+      });
+
+      document.getElementById('total-decks').textContent = decks.length;
+      document.getElementById('total-cards').textContent = totalCards;
+      document.getElementById('due-cards').textContent = dueCards;
+    }
+
+    // Open deck detail
+    function openDeckDetail(deckId) {
+      currentDeck = decks.find(d => d.id === deckId);
+      if (!currentDeck) return;
+      showDeckDetail();
+    }
+
+    // Create deck
+    function createDeck() {
+      document.getElementById('deck-name-input').value = '';
+      document.getElementById('deck-desc-input').value = '';
+      showScreen('create-deck');
+    }
+
+    // Save deck
+    function saveDeck() {
+      const name = document.getElementById('deck-name-input').value.trim();
+      const description = document.getElementById('deck-desc-input').value.trim();
+
+      if (!name) {
+        alert('デッキ名を入力してください');
+        return;
+      }
+
+      const deck = {
+        id: Date.now().toString(),
+        name,
+        description,
+        cards: [],
+        createdAt: new Date().toISOString()
+      };
+
+      decks.push(deck);
+      saveData();
+      showScreen('home');
+    }
+
+    // Show deck detail
+    function showDeckDetail() {
+      if (!currentDeck) return;
+
+      document.getElementById('detail-deck-name').textContent = currentDeck.name;
+      document.getElementById('detail-deck-desc').textContent = currentDeck.description || '説明なし';
+      document.getElementById('detail-card-count').textContent = currentDeck.cards.length;
+
+      const cardsList = document.getElementById('detail-cards-list');
+      if (currentDeck.cards.length === 0) {
+        cardsList.innerHTML = '<div class="empty-state"><div class="empty-state-text">カードがありません</div></div>';
+      } else {
+        cardsList.innerHTML = currentDeck.cards.map((card, index) => `
+          <div class="card">
+            <div class="card-header">
+              <div class="card-header-content">
+                <div class="card-title">カード ${index + 1}</div>
+                <div class="card-description">${card.front.substring(0, 50)}${card.front.length > 50 ? '...' : ''}</div>
+              </div>
+              <button class="delete-button" onclick="deleteCard('${card.id}')">🗑️</button>
+            </div>
+          </div>
+        `).join('');
+      }
+
       showScreen('deck-detail');
     }
 
-    function deleteDeck(id) {
-      if (!confirm("削除しますか？")) return;
-      decks = decks.filter(function(d) { return d.id !== id; });
-      saveData();
-      renderDecks();
+    // Show add card screen
+    function showAddCard() {
+      document.getElementById('card-front-input').value = '';
+      document.getElementById('card-back-input').value = '';
+      frontImageData = null;
+      backImageData = null;
+      document.getElementById('front-image-preview').classList.add('hidden');
+      document.getElementById('back-image-preview').classList.add('hidden');
+      showScreen('add-card');
     }
 
-    function updateAuthButton() {
-      const icon = document.getElementById('auth-icon');
-      const text = document.getElementById('auth-text');
-      if (user) { icon.textContent = '🔓'; text.textContent = 'ログアウト'; }
-      else { icon.textContent = '🔐'; text.textContent = 'ログイン'; }
-    }
-
-    function handleAuth() {
-      if (user) { if (confirm("ログアウトしますか？")) auth.signOut(); }
-      else showScreen('login');
-    }
-
-    async function login() {
-      const pw = document.getElementById('password-input').value;
-      if (pw === 'takataka027') {
-        try {
-          await auth.signInWithEmailAndPassword("user@example.com", pw);
-          showScreen('home');
-        } catch(e) { alert("ログイン失敗"); }
-      } else { alert("パスワード違います"); }
-    }
-
-    function renderStats() {
-      document.getElementById('total-reviews').textContent = studyLogs.length;
-      document.getElementById('today-reviews').textContent = studyLogs.filter(function(l) { return new Date(l.timestamp).toDateString() === new Date().toDateString(); }).length;
-    }
-
-    function clearStudyLogs() {
-      if (confirm("統計を削除しますか？")) { studyLogs = []; saveData(); renderStats(); }
-    }
-
-    function createDeck() { showScreen('create-deck'); }
-    function saveDeck() {
-      const name = document.getElementById('deck-name-input').value;
-      if (!name) return alert("名前を入れてください");
-      decks.push({ id: Date.now().toString(), name: name, description: document.getElementById('deck-desc-input').value, cards: [], createdAt: new Date().toISOString() });
-      saveData(); showScreen('home');
-    }
-
-    function showAddCard() { showScreen('add-card'); }
-    function saveCard() {
-      const f = document.getElementById('card-front-input').value;
-      const b = document.getElementById('card-back-input').value;
-      if (!f) return alert("問題を入れてください");
-      currentDeck.cards.push({ id: Date.now().toString(), front: f, back: b, interval: 0, easeFactor: 2.5, nextReviewDate: new Date().toISOString() });
-      saveData(); showDeckDetail();
-    }
-    
-    // 画像アップロード処理
-    async function handleImageUpload(side, event) {
+    // Handle image upload
+    function handleImageUpload(side, event) {
       const file = event.target.files[0];
       if (!file) return;
+
       const reader = new FileReader();
       reader.onload = function(e) {
         if (side === 'front') {
@@ -1055,6 +1309,554 @@
       };
       reader.readAsDataURL(file);
     }
+
+    // Save card
+    function saveCard() {
+      const front = document.getElementById('card-front-input').value.trim();
+      const back = document.getElementById('card-back-input').value.trim();
+
+      if (!front && !frontImageData) {
+        alert('表面のテキストまたは画像を入力してください');
+        return;
+      }
+
+      const card = {
+        id: Date.now().toString(),
+        front: front || '',
+        back: back || '',
+        frontImage: frontImageData,
+        backImage: backImageData,
+        interval: 0,
+        easeFactor: 2.5,
+        nextReviewDate: new Date().toISOString()
+      };
+
+      currentDeck.cards.push(card);
+
+      // Update deckin storage
+      const deckIndex = decks.findIndex(d => d.id === currentDeck.id);
+      if (deckIndex >= 0) {
+        decks[deckIndex] = currentDeck;
+      }
+      saveData();
+
+      showDeckDetail();
+    }
+
+    // Delete card
+    function deleteCard(cardId) {
+      if (!confirm('このカードを削除してもよろしいですか？')) return;
+
+      currentDeck.cards = currentDeck.cards.filter(c => c.id !== cardId);
+
+      const deckIndex = decks.findIndex(d => d.id === currentDeck.id);
+      if (deckIndex >= 0) {
+        decks[deckIndex] = currentDeck;
+      }
+      saveData();
+
+      showDeckDetail();
+    }
+
+    // Clear study logs
+    function clearStudyLogs() {
+      if (!confirm('学習統計を削除しますか？\nこの操作は取り消せません。')) return;
+
+      studyLogs = [];
+      saveData();
+      renderStats();
+      alert('学習統計を削除しました');
+    }
+
+    // Delete deck
+    function deleteDeck(deckId) {
+      if (!confirm('このデッキを削除してもよろしいですか？この操作は取り消せません。')) return;
+      
+      decks = decks.filter(d => d.id !== deckId);
+      saveData();
+      renderDecks();
+    }
+
+    // Start study
+    function startStudy(deckId) {
+      currentDeck = decks.find(d => d.id === deckId);
+      if (!currentDeck || currentDeck.cards.length === 0) {
+        alert('このデッキにはカードがありません');
+        return;
+      }
+
+      const now = new Date();
+      // Filter cards due for review
+      const dueCards = currentDeck.cards.filter(c => 
+        c.interval === 0 || new Date(c.nextReviewDate) <= now
+      );
+
+      if (dueCards.length === 0) {
+        alert('今日復習するカードはありません');
+        return;
+      }
+
+      currentDeck.cards = dueCards;
+      currentCardIndex = 0;
+      isCardFlipped = false;
+      studyStartTime = new Date();
+
+      document.getElementById('study-deck-name').textContent = currentDeck.name;
+      showScreen('study');
+      renderCard();
+    }
+
+    // Render card
+    function renderCard() {
+      if (currentCardIndex >= currentDeck.cards.length) {
+        finishStudy();
+        return;
+      }
+
+      const card = currentDeck.cards[currentCardIndex];
+      
+      // 表面の表示
+      const cardFront = document.getElementById('card-front');
+      cardFront.innerHTML = '';
+      if (card.frontImage) {
+        const img = document.createElement('img');
+        img.src = card.frontImage;
+        img.style.maxWidth = '100%';
+        img.style.maxHeight = '200px';
+        img.style.marginBottom = '1rem';
+        cardFront.appendChild(img);
+      }
+      if (card.front) {
+        const text = document.createElement('div');
+        text.textContent = card.front;
+        cardFront.appendChild(text);
+      }
+      
+      // 裏面の表示
+      const cardBack = document.getElementById('card-back');
+      cardBack.innerHTML = '';
+      if (card.backImage) {
+        const img = document.createElement('img');
+        img.src = card.backImage;
+        img.style.maxWidth = '100%';
+        img.style.maxHeight = '200px';
+        img.style.marginBottom = '1rem';
+        cardBack.appendChild(img);
+      }
+      if (card.back) {
+        const text = document.createElement('div');
+        text.textContent = card.back;
+        cardBack.appendChild(text);
+      }
+      
+      document.getElementById('card-back').classList.add('hidden');
+      document.getElementById('answer-buttons').classList.add('hidden');
+      isCardFlipped = false;
+
+      const progress = ((currentCardIndex) / currentDeck.cards.length) * 100;
+      document.getElementById('progress-fill').style.width = `${progress}%`;
+      document.getElementById('progress-text').textContent = `${currentCardIndex} / ${currentDeck.cards.length}`;
+    }
+
+    // Flip card
+    function flipCard() {
+      if (isCardFlipped) return;
+      
+      document.getElementById('card-back').classList.remove('hidden');
+      document.getElementById('answer-buttons').classList.remove('hidden');
+      isCardFlipped = true;
+    }
+
+    // Answer card (SM-2 algorithm)
+    function answerCard(quality) {
+      const card = currentDeck.cards[currentCardIndex];
+      
+      // SM-2 Algorithm
+      const qualityMap = { 'again': 0, 'hard': 3, 'good': 4, 'easy': 5 };
+      const q = qualityMap[quality];
+      
+      if (q < 3) {
+        card.interval = 0;
+        card.easeFactor = Math.max(1.3, card.easeFactor - 0.2);
+      } else {
+        if (card.interval === 0) {
+          card.interval = 1;
+        } else if (card.interval === 1) {
+          card.interval = 6;
+        } else {
+          card.interval = Math.round(card.interval * card.easeFactor);
+        }
+        
+        card.easeFactor = card.easeFactor + (0.1 - (5 - q) * (0.08 + (5 - q) * 0.02));
+        card.easeFactor = Math.max(1.3, card.easeFactor);
+      }
+
+      // Calculate next review date
+      const nextDate = new Date();
+      nextDate.setDate(nextDate.getDate() + card.interval);
+      card.nextReviewDate = nextDate.toISOString();
+
+      // Log study
+      const logEntry = {
+        date: new Date().toISOString().split('T')[0],
+        cardId: card.id,
+        deckId: currentDeck.id,
+        quality: q,
+        time: new Date() - studyStartTime
+      };
+      studyLogs.push(logEntry);
+
+      // Update deck in storage
+      const deckIndex = decks.findIndex(d => d.id === currentDeck.id);
+      if (deckIndex >= 0) {
+        decks[deckIndex] = currentDeck;
+      }
+      saveData();
+
+      // Next card
+      currentCardIndex++;
+      studyStartTime = new Date();
+      renderCard();
+    }
+
+    // Finish study
+    function finishStudy() {
+      const studiedCount = currentDeck.cards.length;
+      alert(`学習完了！${studiedCount}枚のカードを学習しました`);
+      showScreen('home');
+    }
+
+    // Render stats
+    function renderStats() {
+      const today = new Date().toISOString().split('T')[0];
+      const todayLogs = studyLogs.filter(l => l.date === today);
+      
+      const todayReviews = todayLogs.length;
+      const totalReviews = studyLogs.length;
+      const totalTime = studyLogs.reduce((sum, l) => sum + (l.time || 0), 0);
+      
+      // Calculate streak
+      const uniqueDates = [...new Set(studyLogs.map(l => l.date))].sort().reverse();
+      let streak = 0;
+      if (uniqueDates.length > 0) {
+        const todayDate = new Date(today);
+        for (let i = 0; i < uniqueDates.length; i++) {
+          const checkDate = new Date(uniqueDates[i]);
+          const diffDays = Math.floor((todayDate - checkDate) / (1000 * 60 * 60 * 24));
+          if (diffDays === i) streak++;
+          else break;
+        }
+      }
+
+      // Calculate correct rate
+      const correctCount = studyLogs.filter(l => l.quality >= 3).length;
+      const correctRate = totalReviews > 0 ? Math.round((correctCount / totalReviews) * 100) : 0;
+
+      // Card distribution
+      let newCards = 0, learningCards = 0, matureCards = 0;
+      decks.forEach(deck => {
+        deck.cards.forEach(card => {
+          if (card.interval === 0) newCards++;
+          else if (card.interval >= 21) matureCards++;
+          else learningCards++;
+        });
+      });
+
+      document.getElementById('today-reviews').textContent = todayReviews;
+      document.getElementById('streak-days').textContent = streak;
+      document.getElementById('correct-rate').textContent = correctRate;
+      document.getElementById('total-reviews').textContent = totalReviews;
+      document.getElementById('total-time').textContent = `${Math.round(totalTime / 60000)}分`;
+      document.getElementById('new-cards').textContent = newCards;
+      document.getElementById('learning-cards').textContent = learningCards;
+      document.getElementById('mature-cards').textContent = matureCards;
+    }
+
+    // File handling
+    function handleFileSelect(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const fileName = file.name.toLowerCase();
+      if (!fileName.endsWith('.apkg') && !fileName.endsWith('.zip') && 
+          !fileName.endsWith('.csv') && !fileName.endsWith('.tsv')) {
+        alert('.apkg、.csv、または .tsv ファイルを選択してください');
+        return;
+      }
+
+      selectedFile = file;
+      document.getElementById('fileInfo').classList.remove('hidden');
+      document.getElementById('fileName').textContent = file.name;
+      document.getElementById('fileSize').textContent = `サイズ: ${(file.size / 1024).toFixed(2)} KB`;
+      
+      analyzeFile(file);
+    }
+
+    async function analyzeFile(file) {
+      const loading = document.getElementById('loading');
+      const loadingText = document.getElementById('loadingText');
+      const preview = document.getElementById('preview');
+      const importButton = document.getElementById('importButton');
+
+      loading.classList.remove('hidden');
+      preview.classList.add('hidden');
+      importButton.classList.add('hidden');
+
+      try {
+        loadingText.textContent = 'ファイルを読み込み中...';
+        
+        const arrayBuffer = await file.arrayBuffer();
+        
+        loadingText.textContent = 'ファイルを解析中...';
+        
+        const result = await parseApkg(arrayBuffer);
+        
+        if (result.decks.length === 0) {
+          alert('このファイルには有効なカードが含まれていません');
+          selectedFile = null;
+          document.getElementById('fileInfo').classList.add('hidden');
+          return;
+        }
+
+        parsedData = result;
+        
+        document.getElementById('preview-decks').textContent = result.decks.length;
+        document.getElementById('preview-cards').textContent = result.totalCards;
+        document.getElementById('preview-media').textContent = result.mediaCount;
+        
+        const deckList = document.getElementById('preview-deck-list');
+        deckList.innerHTML = result.decks.map(deck => `
+          <div class="deck-item">
+            <div class="deck-name">${deck.name}</div>
+            <div class="deck-cards">${deck.cards.length}枚のカード</div>
+          </div>
+        `).join('');
+        
+        preview.classList.remove('hidden');
+        importButton.classList.remove('hidden');
+        
+      } catch (error) {
+        console.error('解析エラー:', error);
+        alert(`ファイルの解析に失敗しました。\n${error.message || '不明なエラー'}`);
+        selectedFile = null;
+        document.getElementById('fileInfo').classList.add('hidden');
+      } finally {
+        loading.classList.add('hidden');
+      }
+    }
+
+    const FIELD_SEPARATOR = '\x1f';
+
+    function stripHtml(html) {
+      let text = html
+        .replace(/<br\s*\/?>/gi, '\n')
+        .replace(/<div>/gi, '\n')
+        .replace(/<[^>]*>/g, '')
+        .replace(/&nbsp;/g, ' ')
+        .replace(/&amp;/g, '&')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&quot;/g, '"')
+        .replace(/&#39;/g, "'")
+        .replace(/\[sound:[^\]]*\]/g, '')
+        .trim();
+
+      // 不要な識別子パターンを除去（より慎重に）
+      // 先頭が英字+数字+アンダースコア+数字+アンダースコアのパターンのみ除去（例: p1q5_0501）
+      text = text.replace(/^[a-z]+\d+[a-z]+\d+_[a-z0-9_]+\s*/i, '');
+      
+      // 先頭が[ID:xxx]のパターンのみ除去
+      text = text.replace(/^\[ID:[^\]]+\]\s*/, '');
+      
+      // 先頭が#数字のパターンのみ除去
+      text = text.replace(/^#\d+\s*/, '');
+
+      return text.trim();
+    }
+
+    async function parseApkg(arrayBuffer) {
+      try {
+        const zip = await JSZip.loadAsync(arrayBuffer);
+        console.log('ZIPファイル読み込み完了');
+
+        // SQLiteデータベースファイルを取得
+        const dbFile = zip.file('collection.anki21') || zip.file('collection.anki2');
+        if (!dbFile) {
+          throw new Error('有効なAnkiデータベースが見つかりません（collection.anki2/anki21が存在しません）');
+        }
+        const dbData = await dbFile.async('uint8array');
+        console.log('データベースファイル読み込み完了');
+
+        // SQL.jsを初期化
+        console.log('SQL.js初期化開始...');
+        const SQL = await initSqlJs({
+          locateFile: (file) => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/${file}`
+        });
+        console.log('SQL.js初期化完了');
+        
+        const db = new SQL.Database(dbData);
+        console.log('データベース接続完了');
+
+        // デッキ定義を取得
+        let deckDefs = {};
+        try {
+          const colResult = db.exec('SELECT decks FROM col LIMIT 1');
+          if (colResult.length && colResult[0].values.length) {
+            const [decksJson] = colResult[0].values[0];
+            deckDefs = JSON.parse(decksJson);
+            console.log('デッキ定義取得完了（colテーブル）:', Object.keys(deckDefs).length);
+          }
+        } catch (e) {
+          // 新形式: decksテーブルを使用
+          const decksTable = db.exec('SELECT id, name FROM decks');
+          if (decksTable.length) {
+            for (const row of decksTable[0].values) {
+              const [id, name] = row;
+              deckDefs[String(id)] = { id, name: String(name).replace(/\x1f/g, '::') };
+            }
+            console.log('デッキ定義取得完了（decksテーブル）:', Object.keys(deckDefs).length);
+          }
+        }
+
+        // ノートを取得
+        const notesMap = new Map();
+        const notesResult = db.exec('SELECT id, flds FROM notes');
+        if (notesResult.length) {
+          for (const row of notesResult[0].values) {
+            const [id, flds] = row;
+            notesMap.set(id, String(flds).split(FIELD_SEPARATOR));
+          }
+          console.log('ノート取得完了:', notesMap.size);
+        } else {
+          console.log('ノートが見つかりません');
+        }
+
+        // カードを取得
+        const deckCards = new Map();
+        const cardsResult = db.exec('SELECT id, nid, did, ivl, factor FROM cards');
+        console.log('カードクエリ結果:', cardsResult.length ? cardsResult[0].values.length : 0);
+        
+        if (cardsResult.length) {
+          let processedCount = 0;
+          let skippedCount = 0;
+          for (const row of cardsResult[0].values) {
+            const [cardId, noteId, deckId, ivl, factor] = row;
+            const fields = notesMap.get(noteId);
+            if (!fields || fields.length === 0) {
+              skippedCount++;
+              continue;
+            }
+
+            // フィールドを解析して適切な表面・裏面を選択
+            let frontRaw = fields[0] || '';
+            let backRaw = fields.slice(1).join('\n') || fields[0] || '';
+
+            // フィールドが3つ以上ある場合、2番目を裏面、残りを例文として扱う
+            if (fields.length >= 3) {
+              backRaw = fields[1] || '';
+              // 例文があれば裏面に追加
+              if (fields[2]) {
+                const example = stripHtml(fields[2]);
+                if (example) {
+                  backRaw += '\n\n例文: ' + example;
+                }
+              }
+            }
+
+            const front = stripHtml(frontRaw);
+            const back = stripHtml(backRaw);
+            
+            if (!front) {
+              skippedCount++;
+              continue;
+            }
+
+            const interval = Math.max(0, Number(ivl) || 0);
+            const easeFactor = Number(factor) > 0 ? Number(factor) / 1000 : 2.5;
+
+            const nextReview = new Date();
+            if (interval > 0) {
+              nextReview.setDate(nextReview.getDate() + interval);
+            }
+
+            const card = {
+              id: String(cardId),
+              front: front,
+              back: back || front,
+              interval,
+              easeFactor,
+              nextReviewDate: nextReview.toISOString()
+            };
+
+            const key = String(deckId);
+            if (!deckCards.has(key)) deckCards.set(key, []);
+            deckCards.get(key).push(card);
+            processedCount++;
+          }
+          console.log('カード処理完了:', processedCount, 'スキップ:', skippedCount);
+        }
+
+        // デッキオブジェクトを構築
+        const parsedDecks = [];
+        const now = new Date().toISOString();
+        for (const [deckId, cards] of deckCards.entries()) {
+          if (cards.length === 0) continue;
+          const def = deckDefs[deckId];
+          const name = def?.name || `インポートデッキ ${deckId}`;
+          parsedDecks.push({
+            id: `apkg-${deckId}-${Date.now()}`,
+            name,
+            description: def?.desc ? stripHtml(def.desc) : `Ankiからインポート（${new Date().toLocaleDateString('ja-JP')}）`,
+            cards,
+            createdAt: now
+          });
+        }
+        console.log('デッキ構築完了:', parsedDecks.length);
+
+        // メディアファイルをカウント
+        let mediaCount = 0;
+        for (const filename of Object.keys(zip.files)) {
+          if (filename.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
+            mediaCount++;
+          }
+        }
+
+        console.log('解析完了:', { decks: parsedDecks.length, totalCards: parsedDecks.reduce((sum, d) => sum + d.cards.length, 0), mediaCount });
+
+        return {
+          decks: parsedDecks,
+          totalCards: parsedDecks.reduce((sum, d) => sum + d.cards.length, 0),
+          mediaCount
+        };
+      } catch (error) {
+        console.error('解析エラー:', error);
+        throw error;
+      } finally {
+        if (db) db.close();
+      }
+    }
+
+    function importDeck() {
+      if (!parsedData) {
+        alert('先にファイルを選択してください');
+        return;
+      }
+
+      parsedData.decks.forEach(deck => {
+        decks.push(deck);
+      });
+
+      saveData();
+
+      const deckNames = parsedData.decks.map(d => d.name).join('、');
+      alert(`${parsedData.decks.length}個のデッキ（計${parsedData.totalCards}枚のカード）をインポートしました：\n${deckNames}`);
+      
+      showScreen('home');
+    }
+
+    // Initialize
+    loadData();
+    renderDecks();
   </script>
 </body>
 </html>
