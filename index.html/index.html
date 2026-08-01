@@ -650,6 +650,7 @@
     // 状態管理
     let decks = JSON.parse(localStorage.getItem(`flashcard_decks_${storagePrefix}`) || '[]');
     let studyLogs = JSON.parse(localStorage.getItem(`flashcard_logs_${storagePrefix}`) || '[]');
+    let mediaMap = JSON.parse(localStorage.getItem(`flashcard_media_${storagePrefix}`) || '{}');
     let currentDeck = null;
     let currentCardIndex = 0;
     let isCardFlipped = false;
@@ -657,7 +658,6 @@
     let frontImageData = null;
     let backImageData = null;
     let SQL = null;
-    let mediaMap = {};
 
     // SQL.js 初期化
     initSqlJs({ locateFile: function(file) { return `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.wasm`; } }).then(function(sql) {
@@ -669,6 +669,7 @@
     async function saveData() {
       localStorage.setItem(`flashcard_decks_${storagePrefix}`, JSON.stringify(decks));
       localStorage.setItem(`flashcard_logs_${storagePrefix}`, JSON.stringify(studyLogs));
+      localStorage.setItem(`flashcard_media_${storagePrefix}`, JSON.stringify(mediaMap));
     }
 
     async function loadDataFromCloud() {
