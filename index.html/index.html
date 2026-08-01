@@ -643,26 +643,26 @@
 
   <script>
     // URLパラメータに基づいてlocalStorageキーを設定
-    const urlParams = new URLSearchParams(window.location.search);
-    const device = urlParams.get('device') || 'default';
-    const storagePrefix = device;
+    var urlParams = new URLSearchParams(window.location.search);
+    var device = urlParams.get('device') || 'default';
+    var storagePrefix = device;
     
     // 状態管理
-    let decks = JSON.parse(localStorage.getItem(`flashcard_decks_${storagePrefix}`) || '[]');
-    let studyLogs = JSON.parse(localStorage.getItem(`flashcard_logs_${storagePrefix}`) || '[]');
-    let mediaMap = {};
-    let currentDeck = null;
-    let currentCardIndex = 0;
-    let isCardFlipped = false;
-    let studyStartTime = null;
-    let frontImageData = null;
-    let backImageData = null;
-    let SQL = null;
-    let db = null;
+    var decks = JSON.parse(localStorage.getItem('flashcard_decks_' + storagePrefix) || '[]');
+    var studyLogs = JSON.parse(localStorage.getItem('flashcard_logs_' + storagePrefix) || '[]');
+    var mediaMap = {};
+    var currentDeck = null;
+    var currentCardIndex = 0;
+    var isCardFlipped = false;
+    var studyStartTime = null;
+    var frontImageData = null;
+    var backImageData = null;
+    var SQL = null;
+    var db = null;
 
     // IndexedDB初期化
     function initIndexedDB() {
-      const request = indexedDB.open(`FlashCardDB_${storagePrefix}`, 1);
+      var request = indexedDB.open('FlashCardDB_' + storagePrefix, 1);
       request.onerror = function(event) {
         console.error('IndexedDB error:', event);
       };
@@ -671,7 +671,7 @@
         loadMediaFromDB();
       };
       request.onupgradeneeded = function(event) {
-        const database = event.target.result;
+        var database = event.target.result;
         if (!database.objectStoreNames.contains('media')) {
           database.createObjectStore('media');
         }
@@ -681,24 +681,25 @@
     // IndexedDBからメディアデータを読み込み
     function loadMediaFromDB() {
       if (!db) return;
-      const transaction = db.transaction(['media'], 'readonly');
-      const objectStore = transaction.objectStore('media');
-      const request = objectStore.getAll();
+      var transaction = db.transaction(['media'], 'readonly');
+      var objectStore = transaction.objectStore('media');
+      var request = objectStore.getAll();
       request.onsuccess = function(event) {
-        const mediaData = event.target.result;
-        mediaData.forEach(function(item) {
+        var mediaData = event.target.result;
+        for (var i = 0; i < mediaData.length; i++) {
+          var item = mediaData[i];
           mediaMap[item.filename] = item.data;
-        });
+        }
       };
     }
 
     // IndexedDBにメディアデータを保存
     function saveMediaToDB() {
       if (!db) return;
-      const transaction = db.transaction(['media'], 'readwrite');
-      const objectStore = transaction.objectStore('media');
+      var transaction = db.transaction(['media'], 'readwrite');
+      var objectStore = transaction.objectStore('media');
       objectStore.clear();
-      for (const filename in mediaMap) {
+      for (var filename in mediaMap) {
         if (mediaMap.hasOwnProperty(filename)) {
           objectStore.add({ filename: filename, data: mediaMap[filename] });
         }
@@ -706,7 +707,7 @@
     }
 
     // SQL.js 初期化
-    initSqlJs({ locateFile: function(file) { return `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.wasm`; } }).then(function(sql) {
+    initSqlJs({ locateFile: function(file) { return 'https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.wasm'; } }).then(function(sql) {
       SQL = sql;
       renderDecks();
     });
@@ -716,8 +717,8 @@
 
     // データ保存
     async function saveData() {
-      localStorage.setItem(`flashcard_decks_${storagePrefix}`, JSON.stringify(decks));
-      localStorage.setItem(`flashcard_logs_${storagePrefix}`, JSON.stringify(studyLogs));
+      localStorage.setItem('flashcard_decks_' + storagePrefix, JSON.stringify(decks));
+      localStorage.setItem('flashcard_logs_' + storagePrefix, JSON.stringify(studyLogs));
     }
 
     async function loadDataFromCloud() {
@@ -726,77 +727,77 @@
     }
 
     // Ankiインポート処理
-    let tempImportedDecks = [];
+    var tempImportedDecks = [];
     async function handleFileSelect(event) {
-      const file = event.target.files[0];
+      var file = event.target.files[0];
       if (!file) return;
       
-      const fileInfo = document.getElementById('fileInfo');
-      const fileName = document.getElementById('fileName');
-      const fileSize = document.getElementById('fileSize');
-      const loading = document.getElementById('loading');
-      const preview = document.getElementById('preview');
-      const importButton = document.getElementById('importButton');
+      var fileInfo = document.getElementById('fileInfo');
+      var fileName = document.getElementById('fileName');
+      var fileSize = document.getElementById('fileSize');
+      var loading = document.getElementById('loading');
+      var preview = document.getElementById('preview');
+      var importButton = document.getElementById('importButton');
       
       fileName.textContent = file.name;
-      fileSize.textContent = `${(file.size / 1024 / 1024).toFixed(2)} MB`;
+      fileSize.textContent = (file.size / 1024 / 1024).toFixed(2) + ' MB';
       fileInfo.classList.remove('hidden');
       loading.classList.remove('hidden');
       preview.classList.add('hidden');
       importButton.classList.add('hidden');
 
       try {
-        const zip = await JSZip.loadAsync(file);
+        var zip = await JSZip.loadAsync(file);
         
         // 1. mediaマッピング (Base64方式)
-        const mediaFile = zip.file("media");
+        var mediaFile = zip.file("media");
         if (mediaFile) {
-          const mediaJson = await mediaFile.async("text");
-          const rawMap = JSON.parse(mediaJson);
-          for (const key in rawMap) {
+          var mediaJson = await mediaFile.async("text");
+          var rawMap = JSON.parse(mediaJson);
+          for (var key in rawMap) {
             if (rawMap.hasOwnProperty(key)) {
-              const name = rawMap[key];
-              const fileData = await zip.file(key).async("base64");
-              const mimeType = name.match(/\.(jpg|jpeg)$/i) ? 'image/jpeg' :
+              var name = rawMap[key];
+              var fileData = await zip.file(key).async("base64");
+              var mimeType = name.match(/\.(jpg|jpeg)$/i) ? 'image/jpeg' :
                              name.match(/\.png$/i) ? 'image/png' :
                              name.match(/\.gif$/i) ? 'image/gif' :
                              name.match(/\.webp$/i) ? 'image/webp' : 'image/jpeg';
-              mediaMap[name] = `data:${mimeType};base64,${fileData}`;
+              mediaMap[name] = 'data:' + mimeType + ';base64,' + fileData;
             }
           }
         }
 
         // 2. データベース解析
-        const dbFile =
+        var dbFile =
             zip.file("collection.anki21") ||
             zip.file("collection.anki21b") ||
             zip.file("collection.anki2");
         if (!dbFile) throw new Error("Ankiデータベースが見つかりません");
-        const dbData = await dbFile.async("uint8array");
-        const ankiDb = new SQL.Database(dbData);
+        var dbData = await dbFile.async("uint8array");
+        var ankiDb = new SQL.Database(dbData);
 
-        let deckInfo;
-        const colRes = ankiDb.exec("SELECT decks FROM col");
+        var deckInfo;
+        var colRes = ankiDb.exec("SELECT decks FROM col");
         if (colRes.length) {
           deckInfo = JSON.parse(colRes[0].values[0][0]);
         } else {
-          const decksResult = ankiDb.exec("SELECT id, name FROM decks");
+          var decksResult = ankiDb.exec("SELECT id, name FROM decks");
           deckInfo = JSON.parse(decksResult[0].values[0][1]);
         }
         
         tempImportedDecks = [];
-        let totalCards = 0;
+        var totalCards = 0;
 
-        for (const did in deckInfo) {
+        for (var did in deckInfo) {
           if (deckInfo.hasOwnProperty(did)) {
-            const d = deckInfo[did];
+            var d = deckInfo[did];
             if (d.name === "Default") continue;
 
-            const cardsRes = ankiDb.exec(`SELECT flds, ivl, factor, due FROM notes JOIN cards ON notes.id = cards.nid WHERE cards.did = ${did}`);
+            var cardsRes = ankiDb.exec('SELECT flds, ivl, factor, due FROM notes JOIN cards ON notes.id = cards.nid WHERE cards.did = ' + did);
             if (!cardsRes.length) continue;
 
-            const cards = cardsRes[0].values.map(function(v) {
-              const fields = v[0].split('\x1f');
+            var cards = cardsRes[0].values.map(function(v) {
+              var fields = v[0].split('\x1f');
               return {
                 id: Math.random().toString(36).substr(2, 9),
                 front: fields[0],
