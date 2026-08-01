@@ -658,12 +658,61 @@
     let frontImageData = null;
     let backImageData = null;
     let SQL = null;
+    let db = null;
+
+    // IndexedDB初期化
+    function initIndexedDB() {
+      const request = indexedDB.open(`FlashCardDB_${storagePrefix}`, 1);
+      request.onerror = function(event) {
+        console.error('IndexedDB error:', event);
+      };
+      request.onsuccess = function(event) {
+        db = event.target.result;
+        loadMediaFromDB();
+      };
+      request.onupgradeneeded = function(event) {
+        const database = event.target.result;
+        if (!database.objectStoreNames.contains('media')) {
+          database.createObjectStore('media');
+        }
+      };
+    }
+
+    // IndexedDBからメディアデータを読み込み
+    function loadMediaFromDB() {
+      if (!db) return;
+      const transaction = db.transaction(['media'], 'readonly');
+      const objectStore = transaction.objectStore('media');
+      const request = objectStore.getAll();
+      request.onsuccess = function(event) {
+        const mediaData = event.target.result;
+        mediaData.forEach(function(item) {
+          mediaMap[item.filename] = item.data;
+        });
+      };
+    }
+
+    // IndexedDBにメディアデータを保存
+    function saveMediaToDB() {
+      if (!db) return;
+      const transaction = db.transaction(['media'], 'readwrite');
+      const objectStore = transaction.objectStore('media');
+      objectStore.clear();
+      for (const filename in mediaMap) {
+        if (mediaMap.hasOwnProperty(filename)) {
+          objectStore.add({ filename: filename, data: mediaMap[filename] });
+        }
+      }
+    }
 
     // SQL.js 初期化
     initSqlJs({ locateFile: function(file) { return `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.wasm`; } }).then(function(sql) {
       SQL = sql;
       renderDecks();
     });
+
+    // IndexedDB初期化
+    initIndexedDB();
 
     // データ保存
     async function saveData() {
@@ -788,6 +837,7 @@
     function importDeck() {
       decks = decks.concat(tempImportedDecks);
       saveData();
+      saveMediaToDB();
       alert("インポートが完了しました！");
       showScreen('home');
     }
