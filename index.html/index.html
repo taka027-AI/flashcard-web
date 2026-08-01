@@ -642,9 +642,14 @@
   </div>
 
   <script>
+    // サブドメインに基づいてlocalStorageキーを設定
+    const subdomain = window.location.hostname.split('.')[0];
+    const storagePrefix = subdomain === 'flashcard-web-mac' ? 'mac' : 
+                         subdomain === 'flashcard-web-mobile' ? 'mobile' : 'default';
+    
     // 状態管理
-    let decks = JSON.parse(localStorage.getItem('flashcard_decks') || '[]');
-    let studyLogs = JSON.parse(localStorage.getItem('flashcard_logs') || '[]');
+    let decks = JSON.parse(localStorage.getItem(`flashcard_decks_${storagePrefix}`) || '[]');
+    let studyLogs = JSON.parse(localStorage.getItem(`flashcard_logs_${storagePrefix}`) || '[]');
     let currentDeck = null;
     let currentCardIndex = 0;
     let isCardFlipped = false;
@@ -662,8 +667,8 @@
 
     // データ保存
     async function saveData() {
-      localStorage.setItem('flashcard_decks', JSON.stringify(decks));
-      localStorage.setItem('flashcard_logs', JSON.stringify(studyLogs));
+      localStorage.setItem(`flashcard_decks_${storagePrefix}`, JSON.stringify(decks));
+      localStorage.setItem(`flashcard_logs_${storagePrefix}`, JSON.stringify(studyLogs));
     }
 
     async function loadDataFromCloud() {
