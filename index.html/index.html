@@ -9,7 +9,6 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
   <style>
     * {
       margin: 0;
@@ -666,12 +665,11 @@
       measurementId: "G-TB23M3X5LF"
     };
 
-    let app, auth, db, storage, user = null;
+    let app, auth, db, user = null;
     try {
       firebase.initializeApp(firebaseConfig);
       auth = firebase.auth();
       db = firebase.firestore();
-      storage = firebase.storage();
       auth.onAuthStateChanged(function(u) {
         user = u;
         updateAuthButton();
@@ -696,29 +694,6 @@
       return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768;
     }
 
-    // 画像をFirebase Storageにアップロード
-    async function uploadImageToStorage(base64Data, filename) {
-      if (!user || !storage) return null;
-      
-      try {
-        // Base64をBlobに変換
-        const response = await fetch(base64Data);
-        const blob = await response.blob();
-        
-        // Storageにアップロード
-        const storageRef = storage.ref();
-        const imageRef = storageRef.child(`users/${user.uid}/images/${filename}`);
-        await imageRef.put(blob);
-        
-        // ダウンロードURLを取得
-        const downloadURL = await imageRef.getDownloadURL();
-        return downloadURL;
-      } catch (e) {
-        console.error("画像アップロードエラー:", e);
-        return null;
-      }
-    }
-
     // SQL.js 初期化
     initSqlJs({ locateFile: function(file) { return `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.wasm`; } }).then(function(sql) {
       SQL = sql;
@@ -733,7 +708,20 @@
         try {
           for (const deck of decks) {
             const deckRef = db.collection('users').doc(user.uid).collection('decks').doc(deck.id);
-            await deckRef.set(deck);
+            
+            // 画像データを除外して保存
+            const deckWithoutImages = {
+              ...deck,
+              cards: deck.cards.map(card => ({
+                ...card,
+                frontImage: undefined,
+                backImage: undefined,
+                front: card.front ? card.front.replace(/<img[^>]+>/g, '') : card.front,
+                back: card.back ? card.back.replace(/<img[^>]+>/g, '') : card.back,
+                extra: card.extra ? card.extra.replace(/<img[^>]+>/g, '') : card.extra
+              }))
+            };
+            await deckRef.set(deckWithoutImages);
           }
         } catch (e) { console.error("クラウド保存エラー:", e); }
       }
@@ -789,7 +777,7 @@
       try {
         const zip = await JSZip.loadAsync(file);
         
-        // 1. mediaマッピング (Firebase Storageにアップロード)
+        // 1. mediaマッピング (Base64方式)
         const mediaFile = zip.file("media");
         if (mediaFile) {
           const mediaJson = await mediaFile.async("text");
@@ -802,16 +790,7 @@
                              name.match(/\.png$/i) ? 'image/png' :
                              name.match(/\.gif$/i) ? 'image/gif' :
                              name.match(/\.webp$/i) ? 'image/webp' : 'image/jpeg';
-              const base64Data = `data:${mimeType};base64,${fileData}`;
-              
-              // Firebase Storageにアップロード
-              const imageUrl = await uploadImageToStorage(base64Data, name);
-              if (imageUrl) {
-                mediaMap[name] = imageUrl;
-              } else {
-                // アップロード失敗時はBase64を使用
-                mediaMap[name] = base64Data;
-              }
+              mediaMap[name] = `data:${mimeType};base64,${fileData}`;
             }
           }
         }
@@ -894,8 +873,8 @@
     function processAnkiContent(text) {
       if (!text) return "";
       return text.replace(/<img src="([^"]+)">/g, function(match, filename) {
-        const imageUrl = mediaMap[filename];
-        return imageUrl ? `<img src="${imageUrl}" class="card-image">` : match;
+        const base64Image = mediaMap[filename];
+        return base64Image ? `<img src="${base64Image}" class="card-image">` : match;
       });
     }
 
@@ -1121,34 +1100,15 @@
       const file = event.target.files[0];
       if (!file) return;
       const reader = new FileReader();
-      reader.onload = async function(e) {
-        const base64Data = e.target.result;
-        
-        // Firebase Storageにアップロード
-        const filename = `${Date.now()}_${file.name}`;
-        const imageUrl = await uploadImageToStorage(base64Data, filename);
-        
-        if (imageUrl) {
-          if (side === 'front') {
-            frontImageData = imageUrl;
-            document.getElementById('front-image-img').src = frontImageData;
-            document.getElementById('front-image-preview').classList.remove('hidden');
-          } else {
-            backImageData = imageUrl;
-            document.getElementById('back-image-img').src = backImageData;
-            document.getElementById('back-image-preview').classList.remove('hidden');
-          }
+      reader.onload = function(e) {
+        if (side === 'front') {
+          frontImageData = e.target.result;
+          document.getElementById('front-image-img').src = frontImageData;
+          document.getElementById('front-image-preview').classList.remove('hidden');
         } else {
-          // アップロード失敗時はBase64を使用
-          if (side === 'front') {
-            frontImageData = base64Data;
-            document.getElementById('front-image-img').src = frontImageData;
-            document.getElementById('front-image-preview').classList.remove('hidden');
-          } else {
-            backImageData = base64Data;
-            document.getElementById('back-image-img').src = backImageData;
-            document.getElementById('back-image-preview').classList.remove('hidden');
-          }
+          backImageData = e.target.result;
+          document.getElementById('back-image-img').src = backImageData;
+          document.getElementById('back-image-preview').classList.remove('hidden');
         }
       };
       reader.readAsDataURL(file);
