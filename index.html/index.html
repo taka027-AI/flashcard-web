@@ -650,7 +650,7 @@
     // 状態管理
     let decks = JSON.parse(localStorage.getItem(`flashcard_decks_${storagePrefix}`) || '[]');
     let studyLogs = JSON.parse(localStorage.getItem(`flashcard_logs_${storagePrefix}`) || '[]');
-    let mediaMap = JSON.parse(localStorage.getItem(`flashcard_media_${storagePrefix}`) || '{}');
+    let mediaMap = {};
     let currentDeck = null;
     let currentCardIndex = 0;
     let isCardFlipped = false;
@@ -669,7 +669,6 @@
     async function saveData() {
       localStorage.setItem(`flashcard_decks_${storagePrefix}`, JSON.stringify(decks));
       localStorage.setItem(`flashcard_logs_${storagePrefix}`, JSON.stringify(studyLogs));
-      localStorage.setItem(`flashcard_media_${storagePrefix}`, JSON.stringify(mediaMap));
     }
 
     async function loadDataFromCloud() {
