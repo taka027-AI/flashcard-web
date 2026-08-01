@@ -846,8 +846,8 @@
     function processAnkiContent(text) {
       if (!text) return "";
       return text.replace(/<img src="([^"]+)">/g, function(match, filename) {
-        const base64Image = mediaMap[filename];
-        return base64Image ? `<img src="${base64Image}" class="card-image">` : match;
+        var base64Image = mediaMap[filename];
+        return base64Image ? '<img src="' + base64Image + '" class="card-image">' : match;
       });
     }
 
@@ -856,26 +856,26 @@
         finishStudy();
         return;
       }
-      const card = currentDeck.cards[currentCardIndex];
-      let frontHtml = `<div class="study-card-front">${processAnkiContent(card.front)}</div>`;
-      if (card.frontImage) frontHtml += `<img src="${card.frontImage}" class="card-image">`;
+      var card = currentDeck.cards[currentCardIndex];
+      var frontHtml = '<div class="study-card-front">' + processAnkiContent(card.front) + '</div>';
+      if (card.frontImage) frontHtml += '<img src="' + card.frontImage + '" class="card-image">';
       
       document.getElementById('card-front').innerHTML = frontHtml;
       document.getElementById('card-back').classList.add('hidden');
       document.getElementById('answer-buttons').classList.add('hidden');
       isCardFlipped = false;
 
-      const progress = ((currentCardIndex) / currentDeck.cards.length) * 100;
-      document.getElementById('progress-fill').style.width = `${progress}%`;
-      document.getElementById('progress-text').textContent = `${currentCardIndex + 1} / ${currentDeck.cards.length}`;
+      var progress = ((currentCardIndex) / currentDeck.cards.length) * 100;
+      document.getElementById('progress-fill').style.width = progress + '%';
+      document.getElementById('progress-text').textContent = (currentCardIndex + 1) + ' / ' + currentDeck.cards.length;
     }
 
     function flipCard() {
       if (isCardFlipped) return;
-      const card = currentDeck.cards[currentCardIndex];
-      let backHtml = `<div class="study-card-back">${processAnkiContent(card.back)}</div>`;
-      if (card.extra) backHtml += `<div style="margin-top:1rem; font-size:0.9rem; color:var(--muted);">${processAnkiContent(card.extra)}</div>`;
-      if (card.backImage) backHtml += `<img src="${card.backImage}" class="card-image">`;
+      var card = currentDeck.cards[currentCardIndex];
+      var backHtml = '<div class="study-card-back">' + processAnkiContent(card.back) + '</div>';
+      if (card.extra) backHtml += '<div style="margin-top:1rem; font-size:0.9rem; color:var(--muted);">' + processAnkiContent(card.extra) + '</div>';
+      if (card.backImage) backHtml += '<img src="' + card.backImage + '" class="card-image">';
       
       document.getElementById('card-back').innerHTML = backHtml;
       document.getElementById('card-back').classList.remove('hidden');
@@ -884,7 +884,7 @@
     }
 
     function answerCard(quality) {
-      const card = currentDeck.cards[currentCardIndex];
+      var card = currentDeck.cards[currentCardIndex];
       if (quality === 'again') {
         card.interval = 0;
       } else {
@@ -905,16 +905,16 @@
     }
 
     function finishStudy() {
-      const duration = Math.round((new Date() - studyStartTime) / 1000 / 60);
-      alert(`学習完了！\n時間: ${duration}分`);
+      var duration = Math.round((new Date() - studyStartTime) / 1000 / 60);
+      alert('学習完了！\n時間: ' + duration + '分');
       showScreen('home');
     }
 
     function showScreen(id) {
       document.querySelectorAll('.screen').forEach(function(s) { s.classList.remove('active'); });
       document.querySelectorAll('.nav-item').forEach(function(n) { n.classList.remove('active'); });
-      document.getElementById(`${id}-screen`).classList.add('active');
-      const navItems = document.querySelectorAll('.nav-item');
+      document.getElementById(id + '-screen').classList.add('active');
+      var navItems = document.querySelectorAll('.nav-item');
       if (id === 'home') navItems[0].classList.add('active');
       if (id === 'stats') navItems[1].classList.add('active');
       if (id === 'import') navItems[2].classList.add('active');
@@ -923,29 +923,27 @@
     }
 
     function renderDecks() {
-      const container = document.getElementById('decks-list');
-      const empty = document.getElementById('empty-state');
+      var container = document.getElementById('decks-list');
+      var empty = document.getElementById('empty-state');
       if (decks.length === 0) {
         container.innerHTML = '';
         empty.classList.remove('hidden');
       } else {
         empty.classList.add('hidden');
         container.innerHTML = decks.map(function(d) {
-          return `
-            <div class="card" onclick="openDeckDetail('${d.id}')">
-              <div class="card-header">
-                <div class="card-header-content">
-                  <div class="card-title">${d.name}</div>
-                  <div class="card-description">${d.description || ''}</div>
-                </div>
-                <button class="delete-button" onclick="event.stopPropagation(); deleteDeck('${d.id}')">🗑️</button>
-              </div>
-              <div class="card-stats">
-                <div class="stat"><div class="stat-label">カード</div><div class="stat-value">${d.cards.length}</div></div>
-                <button class="button" style="margin-left:auto;" onclick="event.stopPropagation(); startStudy('${d.id}')">学習</button>
-              </div>
-            </div>
-          `;
+          return '<div class="card" onclick="openDeckDetail(\'' + d.id + '\')">' +
+            '<div class="card-header">' +
+              '<div class="card-header-content">' +
+                '<div class="card-title">' + d.name + '</div>' +
+                '<div class="card-description">' + (d.description || '') + '</div>' +
+              '</div>' +
+              '<button class="delete-button" onclick="event.stopPropagation(); deleteDeck(\'' + d.id + '\')">🗑️</button>' +
+            '</div>' +
+            '<div class="card-stats">' +
+              '<div class="stat"><div class="stat-label">カード</div><div class="stat-value">' + d.cards.length + '</div></div>' +
+              '<button class="button" style="margin-left:auto;" onclick="event.stopPropagation(); startStudy(\'' + d.id + '\')">学習</button>' +
+            '</div>' +
+          '</div>';
         }).join('');
       }
       updateHomeStats();
@@ -953,8 +951,10 @@
 
     function updateHomeStats() {
       document.getElementById('total-decks').textContent = decks.length;
-      let total = 0;
-      decks.forEach(function(d) { total += d.cards.length; });
+      var total = 0;
+      for (var i = 0; i < decks.length; i++) {
+        total += decks[i].cards.length;
+      }
       document.getElementById('total-cards').textContent = total;
     }
 
@@ -977,14 +977,12 @@
       document.getElementById('detail-deck-name').textContent = currentDeck.name;
       document.getElementById('detail-deck-desc').textContent = currentDeck.description;
       document.getElementById('detail-card-count').textContent = currentDeck.cards.length;
-      const list = document.getElementById('detail-cards-list');
+      var list = document.getElementById('detail-cards-list');
       list.innerHTML = currentDeck.cards.map(function(c, i) {
-        return `
-          <div class="card">
-            <div style="font-size:0.875rem; font-weight:600;">カード ${i+1}</div>
-            <div style="font-size:0.75rem; color:var(--muted);">${c.front.substring(0, 30)}...</div>
-          </div>
-        `;
+        return '<div class="card">' +
+          '<div style="font-size:0.875rem; font-weight:600;">カード ' + (i+1) + '</div>' +
+          '<div style="font-size:0.75rem; color:var(--muted);">' + c.front.substring(0, 30) + '...</div>' +
+        '</div>';
       }).join('');
       showScreen('deck-detail');
     }
@@ -1007,7 +1005,7 @@
 
     function createDeck() { showScreen('create-deck'); }
     function saveDeck() {
-      const name = document.getElementById('deck-name-input').value;
+      var name = document.getElementById('deck-name-input').value;
       if (!name) return alert("名前を入れてください");
       decks.push({ id: Date.now().toString(), name: name, description: document.getElementById('deck-desc-input').value, cards: [], createdAt: new Date().toISOString() });
       saveData(); showScreen('home');
@@ -1015,8 +1013,8 @@
 
     function showAddCard() { showScreen('add-card'); }
     function saveCard() {
-      const f = document.getElementById('card-front-input').value;
-      const b = document.getElementById('card-back-input').value;
+      var f = document.getElementById('card-front-input').value;
+      var b = document.getElementById('card-back-input').value;
       if (!f) return alert("問題を入れてください");
       currentDeck.cards.push({ 
         id: Date.now().toString(), 
@@ -1040,9 +1038,9 @@
     
     // 画像アップロード処理
     async function handleImageUpload(side, event) {
-      const file = event.target.files[0];
+      var file = event.target.files[0];
       if (!file) return;
-      const reader = new FileReader();
+      var reader = new FileReader();
       reader.onload = function(e) {
         if (side === 'front') {
           frontImageData = e.target.result;
@@ -1058,17 +1056,17 @@
     }
 
     function exportData() {
-      const data = {
+      var data = {
         decks: decks,
         studyLogs: studyLogs,
         exportDate: new Date().toISOString()
       };
-      const jsonString = JSON.stringify(data, null, 2);
-      const blob = new Blob([jsonString], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
+      var jsonString = JSON.stringify(data, null, 2);
+      var blob = new Blob([jsonString], { type: 'application/json' });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
       a.href = url;
-      a.download = `flashcard-backup-${new Date().toISOString().split('T')[0]}.json`;
+      a.download = 'flashcard-backup-' + new Date().toISOString().split('T')[0] + '.json';
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -1076,12 +1074,12 @@
     }
 
     function importData(event) {
-      const file = event.target.files[0];
+      var file = event.target.files[0];
       if (!file) return;
-      const reader = new FileReader();
+      var reader = new FileReader();
       reader.onload = function(e) {
         try {
-          const data = JSON.parse(e.target.result);
+          var data = JSON.parse(e.target.result);
           if (!data.decks || !Array.isArray(data.decks)) {
             alert('無効なファイル形式です');
             return;
