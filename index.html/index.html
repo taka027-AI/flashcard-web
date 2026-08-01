@@ -643,8 +643,16 @@
 
   <script>
     // URLパラメータに基づいてlocalStorageキーを設定
-    var urlParams = new URLSearchParams(window.location.search);
-    var device = urlParams.get('device') || 'default';
+    var urlParams = {};
+    var queryString = window.location.search.substring(1);
+    if (queryString) {
+      var pairs = queryString.split('&');
+      for (var i = 0; i < pairs.length; i++) {
+        var pair = pairs[i].split('=');
+        urlParams[decodeURIComponent(pair[0])] = decodeURIComponent(pair[1] || '');
+      }
+    }
+    var device = urlParams.device || 'default';
     var storagePrefix = device;
     
     // 状態管理
