@@ -1823,9 +1823,13 @@
         // media.jsonを読み込んでファイル名のマッピングを取得
         try {
           const mediaJsonFile = zip.file('media');
+          console.log('media.jsonファイル検索:', mediaJsonFile ? '見つかりました' : '見つかりません');
+          
           if (mediaJsonFile) {
             const mediaJsonContent = await mediaJsonFile.async('string');
+            console.log('media.json読み込み完了');
             const mediaJson = JSON.parse(mediaJsonContent);
+            console.log('media.jsonエントリ数:', Object.keys(mediaJson).length);
             
             // メディアファイルを抽出
             for (const [originalName, storedName] of Object.entries(mediaJson)) {
@@ -1838,6 +1842,7 @@
                                mediaFile.name.match(/\.webp$/i) ? 'image/webp' : 'image/jpeg';
                 mediaMap.set(originalName, `data:${mimeType};base64,${mediaData}`);
                 mediaCount++;
+                console.log('画像抽出:', originalName, '->', storedName);
               }
             }
           }
@@ -1845,16 +1850,24 @@
           console.log('media.jsonの読み込みに失敗しました:', e);
         }
 
+        console.log('メディアマップサイズ:', mediaMap.size, '画像数:', mediaCount);
+
         // カードのフィールドから画像タグを解析して画像データを割り当て
+        let imageAssignmentCount = 0;
         for (const deck of parsedDecks) {
           for (const card of deck.cards) {
             // 表面の画像を抽出
             const frontImgMatch = card.front.match(/<img[^>]+src=["']([^"']+)["']/i);
             if (frontImgMatch) {
               const imgName = frontImgMatch[1];
+              console.log('表面画像検出:', imgName);
               if (mediaMap.has(imgName)) {
                 card.frontImage = mediaMap.get(imgName);
                 card.front = card.front.replace(/<img[^>]*>/gi, '').trim();
+                imageAssignmentCount++;
+                console.log('表面画像割り当て成功:', imgName);
+              } else {
+                console.log('表面画像がマップに見つかりません:', imgName);
               }
             }
             
@@ -1862,13 +1875,20 @@
             const backImgMatch = card.back.match(/<img[^>]+src=["']([^"']+)["']/i);
             if (backImgMatch) {
               const imgName = backImgMatch[1];
+              console.log('裏面画像検出:', imgName);
               if (mediaMap.has(imgName)) {
                 card.backImage = mediaMap.get(imgName);
                 card.back = card.back.replace(/<img[^>]*>/gi, '').trim();
+                imageAssignmentCount++;
+                console.log('裏面画像割り当て成功:', imgName);
+              } else {
+                console.log('裏面画像がマップに見つかりません:', imgName);
               }
             }
           }
         }
+
+        console.log('画像割り当て完了:', imageAssignmentCount, '枚');
 
         console.log('解析完了:', { decks: parsedDecks.length, totalCards: parsedDecks.reduce((sum, d) => sum + d.cards.length, 0), mediaCount });
 
