@@ -642,10 +642,10 @@
   </div>
 
   <script>
-    // サブドメインに基づいてlocalStorageキーを設定
-    const subdomain = window.location.hostname.split('.')[0];
-    const storagePrefix = subdomain === 'flashcard-web-mac' ? 'mac' : 
-                         subdomain === 'flashcard-web-mobile' ? 'mobile' : 'default';
+    // URLパラメータに基づいてlocalStorageキーを設定
+    const urlParams = new URLSearchParams(window.location.search);
+    const device = urlParams.get('device') || 'default';
+    const storagePrefix = device;
     
     // 状態管理
     let decks = JSON.parse(localStorage.getItem(`flashcard_decks_${storagePrefix}`) || '[]');
