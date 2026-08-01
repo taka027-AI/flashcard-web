@@ -1835,7 +1835,7 @@
         console.error('解析エラー:', error);
         throw error;
       } finally {
-        if (db) db.close();
+        // SQL.jsではデータベースを明示的に閉じる必要はありません
       }
     }
 
@@ -1863,3 +1863,4 @@
   </script>
 </body>
 </html>
+
