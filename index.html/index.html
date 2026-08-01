@@ -714,11 +714,23 @@
       try {
         const snapshot = await db.collection('users').doc(user.uid).collection('decks').get();
         const cloudDecks = [];
-        snapshot.forEach(function(doc) { cloudDecks.push(doc.data()); });
+        const cloudDeckIds = new Set();
+        snapshot.forEach(function(doc) { 
+          const deck = doc.data();
+          cloudDecks.push(deck);
+          cloudDeckIds.add(deck.id);
+        });
+        
         if (cloudDecks.length > 0) {
-          decks = cloudDecks;
-          saveData();
-          renderDecks();
+          // ローカルに存在しないクラウドデッキのみを追加
+          const localDeckIds = new Set(decks.map(d => d.id));
+          const newDecks = cloudDecks.filter(d => !localDeckIds.has(d.id));
+          
+          if (newDecks.length > 0) {
+            decks = decks.concat(newDecks);
+            saveData();
+            renderDecks();
+          }
         }
       } catch (e) { console.error("クラウド読み込みエラー:", e); }
     }
@@ -985,9 +997,17 @@
       showScreen('deck-detail');
     }
 
-    function deleteDeck(id) {
+    async function deleteDeck(id) {
       if (!confirm("削除しますか？")) return;
       decks = decks.filter(function(d) { return d.id !== id; });
+      
+      // Firebaseからも削除
+      if (user && db) {
+        try {
+          await db.collection('users').doc(user.uid).collection('decks').doc(id).delete();
+        } catch (e) { console.error("クラウド削除エラー:", e); }
+      }
+      
       saveData();
       renderDecks();
     }
@@ -1104,3 +1124,6 @@
       event.target.value = '';
     }
   </script>
+</body>
+</html>
+about:blank#blocked<
