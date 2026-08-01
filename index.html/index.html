@@ -728,30 +728,8 @@
     }
 
     async function loadDataFromCloud() {
-      if (!user || !db) return;
-      
-      try {
-        const snapshot = await db.collection('users').doc(user.uid).collection('decks').get();
-        const cloudDecks = [];
-        const cloudDeckIds = new Set();
-        snapshot.forEach(function(doc) { 
-          const deck = doc.data();
-          cloudDecks.push(deck);
-          cloudDeckIds.add(deck.id);
-        });
-        
-        if (cloudDecks.length > 0) {
-          // 新しいデッキを追加
-          const localDeckIds = new Set(decks.map(d => d.id));
-          const newDecks = cloudDecks.filter(d => !localDeckIds.has(d.id));
-          
-          if (newDecks.length > 0) {
-            decks = decks.concat(newDecks);
-            saveData();
-            renderDecks();
-          }
-        }
-      } catch (e) { console.error("クラウド読み込みエラー:", e); }
+      // クラウド同期を無効化（画像を保護するため）
+      return;
     }
 
     // Ankiインポート処理
