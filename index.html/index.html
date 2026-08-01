@@ -1816,11 +1816,57 @@
         }
         console.log('デッキ構築完了:', parsedDecks.length);
 
-        // メディアファイルをカウント
+        // メディアファイルを抽出してBase64に変換
+        const mediaMap = new Map();
         let mediaCount = 0;
-        for (const filename of Object.keys(zip.files)) {
-          if (filename.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
-            mediaCount++;
+        
+        // media.jsonを読み込んでファイル名のマッピングを取得
+        try {
+          const mediaJsonFile = zip.file('media');
+          if (mediaJsonFile) {
+            const mediaJsonContent = await mediaJsonFile.async('string');
+            const mediaJson = JSON.parse(mediaJsonContent);
+            
+            // メディアファイルを抽出
+            for (const [originalName, storedName] of Object.entries(mediaJson)) {
+              const mediaFile = zip.file(storedName);
+              if (mediaFile && mediaFile.name.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
+                const mediaData = await mediaFile.async('base64');
+                const mimeType = mediaFile.name.match(/\.(jpg|jpeg)$/i) ? 'image/jpeg' :
+                               mediaFile.name.match(/\.png$/i) ? 'image/png' :
+                               mediaFile.name.match(/\.gif$/i) ? 'image/gif' :
+                               mediaFile.name.match(/\.webp$/i) ? 'image/webp' : 'image/jpeg';
+                mediaMap.set(originalName, `data:${mimeType};base64,${mediaData}`);
+                mediaCount++;
+              }
+            }
+          }
+        } catch (e) {
+          console.log('media.jsonの読み込みに失敗しました:', e);
+        }
+
+        // カードのフィールドから画像タグを解析して画像データを割り当て
+        for (const deck of parsedDecks) {
+          for (const card of deck.cards) {
+            // 表面の画像を抽出
+            const frontImgMatch = card.front.match(/<img[^>]+src=["']([^"']+)["']/i);
+            if (frontImgMatch) {
+              const imgName = frontImgMatch[1];
+              if (mediaMap.has(imgName)) {
+                card.frontImage = mediaMap.get(imgName);
+                card.front = card.front.replace(/<img[^>]*>/gi, '').trim();
+              }
+            }
+            
+            // 裏面の画像を抽出
+            const backImgMatch = card.back.match(/<img[^>]+src=["']([^"']+)["']/i);
+            if (backImgMatch) {
+              const imgName = backImgMatch[1];
+              if (mediaMap.has(imgName)) {
+                card.backImage = mediaMap.get(imgName);
+                card.back = card.back.replace(/<img[^>]*>/gi, '').trim();
+              }
+            }
           }
         }
 
@@ -1863,4 +1909,3 @@
   </script>
 </body>
 </html>
-
